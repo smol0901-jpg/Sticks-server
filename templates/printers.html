@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printers - Sticker Printer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; }
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav a { color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; transition: background 0.3s; font-size: 14px; }
+        .nav a:hover { background: rgba(255,255,255,0.2); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .panel { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { color: #333; margin-bottom: 20px; }
+        .printer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .printer-card { background: #f8f9fa; border-radius: 10px; padding: 20px; border: 2px solid #e0e0e0; }
+        .printer-card.active { border-color: #667eea; background: #f0f4ff; }
+        .printer-card h3 { color: #667eea; margin-bottom: 10px; }
+        .printer-info { font-size: 14px; color: #666; margin: 5px 0; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; margin: 5px; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .form-group { margin: 15px 0; }
+        .form-group label { display: block; margin-bottom: 5px; color: #666; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .status { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin-left: 10px; }
+        .status-online { background: #e8f5e9; color: #4caf50; }
+        .status-offline { background: #ffebee; color: #f44336; }
+        @media (max-width: 768px) { .printer-grid { grid-template-columns: 1fr; } .nav { gap: 5px; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖨️ Printers Management</h1>
+        <nav class="nav">
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/constructor">🎨 Constructor</a>
+            <a href="/wall">💬 Wall</a>
+            <a href="/printers">🖨️ Printers</a>
+            <a href="/inventory">📦 Inventory</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/logout">🚪 Logout</a>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>Add New Printer</h2>
+            <div class="form-group">
+                <label>Printer Name</label>
+                <input type="text" id="printerName" placeholder="Enter printer name">
+            </div>
+            <div class="form-group">
+                <label>Printer Type</label>
+                <select id="printerType">
+                    <option value="datamax">Datamax</option>
+                    <option value="zebra">Zebra</option>
+                    <option value="godex">Godex</option>
+                    <option value="generic">Generic Thermal</option>
+                    <option value="inkjet">Inkjet/Laser</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Paper Width (mm)</label>
+                <input type="number" id="paperWidth" value="50">
+            </div>
+            <div class="form-group">
+                <label>Paper Height (mm)</label>
+                <input type="number" id="paperHeight" value="30">
+            </div>
+            <button class="btn btn-primary" onclick="addPrinter()">Add Printer</button>
+            <button class="btn btn-success" onclick="autoDetect()">🔍 Auto Detect</button>
+        </div>
+        
+        <div class="panel">
+            <h2>Available Printers</h2>
+            <div class="printer-grid" id="printerList">
+                <!-- Printers will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadPrinters() {
+            const res = await fetch('/api/printers');
+            const data = await res.json();
+            const list = document.getElementById('printerList');
+            
+            if (data.printers && data.printers.length > 0) {
+                list.innerHTML = data.printers.map(p => `
+                    <div class="printer-card ${p.is_default ? 'active' : ''}">
+                        <h3>${p.name} ${p.is_default ? '(Default)' : ''}</h3>
+                        <div class="printer-info">Type: ${p.type || 'Unknown'}</div>
+                        <div class="printer-info">Size: ${p.paper_width}x${p.paper_height}mm</div>
+                        <div class="printer-info">Port: ${p.port || 'Auto'}</div>
+                        <div class="printer-info">Status: <span class="status status-online">Online</span></div>
+                        <div style="margin-top:10px;">
+                            <button class="btn btn-primary" onclick="setDefault(${p.id})">Set Default</button>
+                            <button class="btn btn-success" onclick="testPrint(${p.id})">Test Print</button>
+                            <button class="btn btn-danger" onclick="deletePrinter(${p.id})">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = '<p>No printers configured. Add one above or use Auto Detect.</p>';
+            }
+        }
+        
+        async function addPrinter() {
+            const name = document.getElementById('printerName').value;
+            const type = document.getElementById('printerType').value;
+            const width = parseFloat(document.getElementById('paperWidth').value);
+            const height = parseFloat(document.getElementById('paperHeight').value);
+            
+            if (!name) { alert('Please enter a printer name'); return; }
+            
+            const res = await fetch('/api/printers', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, type, paper_width: width, paper_height: height})
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Printer added successfully!');
+                loadPrinters();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        }
+        
+        async function autoDetect() {
+            const res = await fetch('/api/printers/detect', {method: 'POST'});
+            const data = await res.json();
+            if (data.printers && data.printers.length > 0) {
+                alert('Found ' + data.printers.length + ' printer(s)!');
+                loadPrinters();
+            } else {
+                alert('No printers detected. Please add manually.');
+            }
+        }
+        
+        async function setDefault(id) {
+            const res = await fetch(`/api/printers/${id}/default`, {method: 'POST'});
+            const data = await res.json();
+            if (data.success) loadPrinters();
+        }
+        
+        async function testPrint(id) {
+            const res = await fetch(`/api/printers/${id}/test`, {method: 'POST'});
+            const data = await res.json();
+            alert(data.message || 'Test print sent!');
+        }
+        
+        async function deletePrinter(id) {
+            if (!confirm('Delete this printer?')) return;
+            const res = await fetch(`/api/printers/${id}`, {method: 'DELETE'});
+            const data = await res.json();
+            if (data.success) loadPrinters();
+        }
+        
+        loadPrinters();
+    </script>
+</body>
+</html>
