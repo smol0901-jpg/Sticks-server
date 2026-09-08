@@ -1,0 +1,15 @@
+```
+# Logs
+*.log
+
+# Database
+*.db
+
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Cookies
+cookies*.txt
+```
