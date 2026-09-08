@@ -1,338 +1,2380 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конструктор Этикеток</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; height: 100vh; display: flex; flex-direction: column; }
-        .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .nav a { color: white; text-decoration: none; margin-right: 15px; }
-        .main { display: flex; flex: 1; overflow: hidden; }
-        .toolbar { width: 250px; background: white; padding: 15px; overflow-y: auto; border-right: 1px solid #ddd; }
-        .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; background: #e0e0e0; position: relative; }
-        #canvas { background: white; box-shadow: 0 5px 25px rgba(0,0,0,0.2); }
-        .properties { width: 280px; background: white; padding: 15px; overflow-y: auto; border-left: 1px solid #ddd; }
-        .tool-group { margin-bottom: 20px; }
-        .tool-group h3 { font-size: 14px; margin-bottom: 10px; color: #666; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; margin: 3px; font-size: 13px; }
-        .btn-tool { background: #f0f0f0; width: 100%; text-align: left; }
-        .btn-primary { background: #667eea; color: white; }
-        input, select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; }
-        .color-picker { display: flex; gap: 5px; flex-wrap: wrap; }
-        .color-swatch { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid #ddd; }
-        @media (max-width: 768px) { .main { flex-direction: column; } .toolbar, .properties { width: 100%; height: 200px; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEURAL LABEL SYSTEM HACCP PRO | ВЛАВАШЕ ФУД КОМПАНИ</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --border: #334155;
+  --sidebar-width: 340px;
+  --right-panel-width: 340px;
+  --header-height: 50px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;}
+body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px;}
+header{background:var(--panel);padding:6px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;min-height:var(--header-height);flex-shrink:0;}
+header h1{font-size:14px;color:var(--accent);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.header-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.clock{font-size:12px;color:var(--muted);font-family:monospace;background:var(--bg);padding:4px 10px;border-radius:4px;border:1px solid var(--border);min-width:120px;text-align:center;}
+.tabs{display:flex;gap:2px;background:var(--bg);padding:3px;border-radius:6px;}
+.tab{padding:4px 12px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:4px;font-weight:600;font-size:11px;transition:0.2s;}
+.tab.active{background:var(--accent);color:white;}
+.tab:hover{color:white;}
+.theme-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;}
+.theme-btn:hover{border-color:var(--accent);color:white;}
+main{display:flex;flex:1;overflow:hidden;position:relative;}
+.left-panel{width:var(--sidebar-width);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width 0.3s;}
+.left-panel.collapsed{width:0;border-right:none;}
+.panel-toggle{position:absolute;left:calc(var(--sidebar-width) - 18px);top:50%;transform:translateY(-50%);z-index:10;background:var(--panel);border:1px solid var(--border);border-radius:0 6px 6px 0;color:var(--text);padding:8px 4px;cursor:pointer;font-size:10px;transition:left 0.3s;}
+.left-panel.collapsed ~ .panel-toggle{left:0;}
+.panel-inner{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.section{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.section-title{font-size:10px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-weight:700;letter-spacing:0.3px;}
+.quick-add{display:flex;gap:4px;}
+.quick-add input{flex:1;background:var(--bg);border:1px solid var(--border);color:white;padding:5px 8px;border-radius:4px;font-size:12px;}
+.quick-add button{background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-weight:600;}
+.search-box{display:flex;gap:4px;margin-bottom:4px;}
+.search-box input{flex:1;background:var(--bg);border:1px solid var(--border);color:white;padding:4px 8px;border-radius:4px;font-size:12px;}
+.editor{padding:8px 12px;overflow-y:auto;max-height:50%;flex-shrink:0;}
+.form-row{display:flex;gap:6px;margin-bottom:4px;}
+.form-group{flex:1;}
+.form-group label{display:block;font-size:10px;color:var(--muted);margin-bottom:2px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:white;padding:4px 6px;border-radius:3px;font-size:11px;}
+.form-group textarea{resize:vertical;min-height:30px;font-family:monospace;}
+.btn{padding:5px 10px;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:0.2s;}
+.btn-accent{background:var(--accent);color:white;}
+.btn-success{background:var(--success);color:white;}
+.btn-danger{background:var(--danger);color:white;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-sm{padding:3px 6px;font-size:10px;}
+.btn:hover{opacity:0.85;}
+.btn-block{width:100%;justify-content:center;margin-bottom:3px;}
+.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.right-panel{width:var(--right-panel-width);background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.right-panel.collapsed{width:0;border-left:none;}
+.right-panel-inner{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.product-list{flex:1;overflow-y:auto;padding:4px 8px;min-height:100px;}
+.product-item{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;margin-bottom:3px;display:flex;align-items:center;gap:4px;cursor:pointer;transition:0.2s;font-size:12px;}
+.product-item:hover{border-color:var(--accent);}
+.product-item.selected{border-color:var(--accent);background:rgba(59,130,246,0.1);}
+.product-item input[type="checkbox"]{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;}
+.product-item-info{flex:1;min-width:0;}
+.product-item-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.product-item-meta{font-size:9px;color:var(--muted);}
+.product-item-status{font-size:9px;padding:1px 6px;border-radius:10px;flex-shrink:0;}
+.status-fresh{background:rgba(16,185,129,0.2);color:var(--success);}
+.status-warning{background:rgba(245,158,11,0.2);color:var(--warning);}
+.status-expired{background:rgba(239,68,68,0.2);color:var(--danger);}
+.product-item-del{background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 4px;}
+.preview-area{flex:1;background:#0f172a;background-image:radial-gradient(#334155 1px,transparent 1px);background-size:20px 20px;display:flex;flex-direction:column;align-items:center;padding:10px;overflow:auto;}
+.preview-controls{display:flex;gap:6px;margin-bottom:10px;background:var(--panel);padding:6px 10px;border-radius:6px;border:1px solid var(--border);flex-wrap:wrap;align-items:center;flex-shrink:0;}
+.preview-controls select,.preview-controls input{background:var(--bg);color:white;border:1px solid var(--border);border-radius:3px;padding:4px 6px;font-size:11px;}
+.preview-container{flex:1;display:flex;flex-direction:column;align-items:center;overflow:auto;width:100%;}
+.label-canvas{background:white;color:black;box-shadow:0 10px 30px rgba(0,0,0,0.4);position:relative;display:flex;flex-direction:column;padding:6px;overflow:hidden;}
+.lbl-row{margin-bottom:2px;display:flex;align-items:baseline;flex-wrap:wrap;}
+.lbl-label{font-weight:700;margin-right:4px;white-space:nowrap;}
+.lbl-value{flex:1;border-bottom:1px dotted #999;word-wrap:break-word;overflow-wrap:break-word;hyphens:auto;}
+.lbl-divider{height:1px;background:#000;margin:3px 0;}
+.lbl-qr{display:flex;justify-content:center;margin:2px 0;}
+.lbl-footer{margin-top:auto;border-top:1px solid #ccc;padding-top:3px;font-size:7px;text-align:center;color:#555;}
+.batch-preview{background:white;color:black;padding:5mm;box-shadow:0 10px 30px rgba(0,0,0,0.4);display:grid;gap:3mm;}
+.batch-label{border:1px solid #000;padding:2mm;display:flex;flex-direction:column;font-size:8px;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;justify-content:center;align-items:center;}
+.modal.active{display:flex;}
+.modal-content{background:var(--panel);padding:20px;border-radius:8px;width:500px;max-width:90%;max-height:85vh;overflow-y:auto;border:1px solid var(--border);}
+.modal-content h3{color:var(--accent);margin-bottom:10px;}
+.modal-content textarea{width:100%;height:150px;background:var(--bg);border:1px solid var(--border);color:white;padding:8px;border-radius:4px;font-family:monospace;font-size:11px;margin:8px 0;}
+.checkbox-row{display:flex;align-items:center;gap:5px;font-size:11px;margin:4px 0;}
+.checkbox-row input{width:14px;height:14px;accent-color:var(--accent);}
+.info-box{background:rgba(59,130,246,0.1);border-left:3px solid var(--accent);padding:8px;border-radius:4px;font-size:11px;margin:6px 0;}
+.countdown-box{background:rgba(16,185,129,0.1);border-left:3px solid var(--success);padding:8px;border-radius:4px;font-size:11px;margin:6px 0;font-family:monospace;}
+.countdown-box.warning{border-color:var(--warning);background:rgba(245,158,11,0.1);}
+.countdown-box.danger{border-color:var(--danger);background:rgba(239,68,68,0.1);}
+.inline-editable{cursor:text;transition:all 0.2s;border-radius:2px;padding:0 2px;}
+.inline-editable:hover{background:rgba(59,130,246,0.1);outline:1px dashed var(--accent);}
+.inline-editable:focus{background:rgba(59,130,246,0.2);outline:2px solid var(--accent);outline-offset:2px;}
+.template-selector{display:flex;gap:4px;align-items:center;margin-bottom:4px;}
+.template-selector select{flex:1;background:var(--bg);border:1px solid var(--border);color:white;padding:4px 6px;border-radius:3px;font-size:11px;}
+.qr-debug{margin-top:6px;font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;background:none;border:none;}
+.import-log{background:var(--bg);border:1px solid var(--border);padding:6px;border-radius:4px;font-size:10px;max-height:80px;overflow-y:auto;margin-top:4px;color:var(--muted);}
+.import-log .success{color:var(--success);}
+.import-log .error{color:var(--danger);}
+.default-employee-box{background:rgba(16,185,129,0.1);border-left:3px solid var(--success);padding:8px;border-radius:4px;font-size:11px;margin:4px 0;}
+.time-auto-label{font-size:9px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.time-auto-label .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.draggable-block{cursor:grab;transition:transform 0.1s, box-shadow 0.2s;position:relative;}
+.draggable-block:active{cursor:grabbing;}
+.draggable-block.dragging{opacity:0.5;transform:scale(0.95);}
+.drag-over{border:2px dashed var(--accent);background:rgba(59,130,246,0.1);}
+.drag-handle{cursor:grab;color:var(--muted);padding:0 4px;font-size:14px;user-select:none;}
+.drag-handle:hover{color:var(--text);}
+.data-path-info{background:rgba(16,185,129,0.1);border-left:3px solid var(--success);padding:8px;border-radius:4px;font-size:11px;margin:6px 0;word-wrap:break-word;}
+.data-path-info .path{font-family:monospace;color:var(--accent);}
+
+/* ============ ПЕЧАТЬ — DATAMAX / ЛЮБОЙ ПРИНТЕР ЭТИКЕТОК ============
+   Размер @page задаётся динамически через JS перед window.print()
+   НЕ задаём size здесь — иначе будет конфликт и двойная этикетка
+   ================================================================= */
+@media print {
+    /* Скрываем всё кроме зоны печати */
+    body > * { visibility: hidden !important; }
+    #printArea { visibility: visible !important; }
+    #printArea * { visibility: visible !important; }
+
+    /* Контейнер печати — строго без лишних отступов и размеров */
+    #printArea {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        /* НЕ задаём width/height/flex здесь — JS устанавливает под конкретный режим */
+    }
+
+    /* Одна этикетка — занимает ровно один стикер */
+    .print-single {
+        display: block !important;
+        margin: 0 !important;
+        padding: 2mm !important;
+        border: none !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        /* page-break НЕ нужен — это единственный элемент на странице */
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-after: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Пакетная печать — сетка этикеток */
+    .batch-label {
+        display: block !important;
+        margin: 0 !important;
+        padding: 2mm !important;
+        border: 0.5px solid #999 !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+}
+/* ============================================================= */
+
+.print-single{background:white;color:black;padding:2mm;display:flex;flex-direction:column;font-size:9px;}
+.hidden{display:none !important;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--success);color:white;padding:10px 20px;border-radius:6px;font-weight:600;z-index:2000;transform:translateY(100px);opacity:0;transition:all 0.3s;font-size:13px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.error{background:var(--danger);}
+.tab-content{display:none;flex:1;overflow:hidden;}
+.tab-content.active{display:flex;}
+.theme-light{--bg:#f1f5f9;--panel:#ffffff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;}
+.theme-dark{--bg:#0f172a;--panel:#1e293b;--text:#f8fafc;--muted:#94a3b8;--border:#334155;}
+.theme-blue{--bg:#0c1929;--panel:#1a2a4a;--text:#e8f0fe;--muted:#8ab4f8;--border:#2a4a6a;--accent:#4fc3f7;}
+.theme-green{--bg:#0a1a0a;--panel:#1a2a1a;--text:#e8f5e9;--muted:#81c784;--border:#2a4a2a;--accent:#66bb6a;}
+.color-picker{display:flex;gap:4px;flex-wrap:wrap;}
+.color-swatch{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:0.2s;}
+.color-swatch:hover{border-color:white;transform:scale(1.1);}
+.color-swatch.active{border-color:var(--accent);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+@media (max-width:768px){:root{--sidebar-width:260px;--right-panel-width:260px;}header h1{font-size:12px;}.tabs .tab{font-size:10px;padding:3px 8px;}.left-panel{width:var(--sidebar-width);}.right-panel{width:var(--right-panel-width);}}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h2>🎨 Конструктор Этикеток</h2>
-        <nav class="nav">
-            <a href="/dashboard">📊 Dashboard</a>
-            <a href="#" onclick="saveTemplate()">💾 Save</a>
-            <a href="#" onclick="printLabel()">🖨️ Print</a>
-        </nav>
+
+<header>
+  <h1>🧠 NEURAL LABEL HACCP PRO</h1>
+  <div class="header-controls">
+    <div class="clock" id="liveClock">⏱️ --:--:--</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="print">📦 Печать</button>
+      <button class="tab" data-tab="quick">⚡ Быстрый</button>
+      <button class="tab" data-tab="constructor">🎨 Конструктор</button>
+      <button class="tab" data-tab="settings">⚙️ Настройки</button>
+    </div>
+    <button class="theme-btn" onclick="toggleLeftPanel()">◀▶</button>
+    <button class="theme-btn" onclick="toggleRightPanel()">▶◀</button>
+    <button class="theme-btn" onclick="showThemeMenu()">🎨</button>
+    <button class="theme-btn" onclick="saveAllToFile()">💾</button>
+  </div>
+</header>
+
+<main>
+  <!-- Левая панель: Шаблоны, Сотрудник, Редактор -->
+  <div class="left-panel" id="leftPanel">
+    <div class="panel-inner">
+      <div class="section">
+        <div class="section-title">📋 Шаблоны</div>
+        <div class="template-selector">
+          <select id="templateSelector" onchange="switchTemplate()"></select>
+          <button class="btn btn-sm btn-ghost" onclick="saveAsNewTemplate()" title="Сохранить как новый">+</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCurrentTemplate()" title="Удалить">✕</button>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">👤 Сотрудник</div>
+        <select id="defaultEmployeeSelect" onchange="setDefaultEmployee()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:white;padding:4px 6px;border-radius:3px;font-size:11px;">
+          <option value="">-- Не выбран --</option>
+        </select>
+      </div>
+      
+      <!-- Редактор -->
+      <div class="editor">
+        <div class="section-title" style="margin-bottom:3px;">✏️ Данные этикетки</div>
+        <div class="form-group"><label>Наименование</label><input type="text" id="f_name" oninput="updateCurrent()"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Дата вскрытия</label><input type="datetime-local" id="f_openDate" oninput="updateCurrent()"></div>
+          <div class="form-group"><label>Срок (ч)</label><input type="number" id="f_shelfLife" value="72" oninput="updateCurrent()"></div>
+        </div>
+        <div class="checkbox-row"><input type="checkbox" id="f_noExpiry" onchange="updateCurrent()"><label>Срок не известен</label></div>
+        <div class="form-group"><label>Годен до (авто)</label><input type="text" id="f_expiry" readonly style="background:#0f172a;color:var(--danger);font-weight:bold;"></div>
+        <div id="countdownDisplay" class="countdown-box" style="display:none;"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Вскрыл</label><input type="text" id="f_openedBy" oninput="updateCurrent()"></div>
+          <div class="form-group"><label>Партия</label><input type="text" id="f_batch" oninput="updateCurrent()"></div>
+        </div>
+        <div class="form-group"><label>Хранение</label><input type="text" id="f_temp" value="+2...+6°C" oninput="updateCurrent()"></div>
+        <div class="form-group"><label>Аллергены</label><input type="text" id="f_allergens" oninput="updateCurrent()"></div>
+        <button class="btn btn-sm btn-accent" onclick="setCurrentTime()" style="margin-top:4px;">🕒 Установить текущее время</button>
+      </div>
+    </div>
+  </div>
+  
+  <button class="panel-toggle" id="leftPanelToggle" onclick="toggleLeftPanel()">◀</button>
+  
+  <!-- Центральная область: Превью -->
+  <div class="center-area">
+    <div id="tab-print" class="tab-content active" style="flex:1;">
+      <div class="preview-area">
+        <div class="preview-controls">
+          <select id="printMode" onchange="renderPreview()">
+            <option value="single">📄 Одна</option>
+            <option value="batch">📦 Пакет</option>
+          </select>
+          <select id="batchLayout" onchange="renderPreview()">
+            <option value="2x3">2×3 (6 шт)</option>
+            <option value="3x4">3×4 (12 шт)</option>
+            <option value="1x1">1×1</option>
+          </select>
+          <input type="number" id="printWidth" placeholder="Ширина мм" value="90" style="width:60px;" onchange="renderPreview()">
+          <input type="number" id="printHeight" placeholder="Высота мм" value="60" style="width:60px;" onchange="renderPreview()">
+          <button class="btn btn-success" onclick="printLabels()">🖨️ ПЕЧАТЬ</button>
+          <button class="btn btn-warning" onclick="printLabelsForDatamax()" style="background:#f59e0b;color:white;border:none;padding:5px 10px;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Печать строго по размеру стикера — одна этикетка на один стикер">🖨️ Datamax 1→1</button>
+          <span class="time-auto-label"><span class="live-dot"></span> Live</span>
+        </div>
+        <div class="preview-container" id="previewContainer"></div>
+        <button class="qr-debug" onclick="debugQR()">🔍 QR-содержимое</button>
+      </div>
     </div>
     
-    <div class="main">
-        <div class="toolbar">
-            <div class="tool-group">
-                <h3>📝 Text</h3>
-                <button class="btn btn-tool" onclick="addText()">Add Text</button>
-                <button class="btn btn-tool" onclick="addDate()">Add Date</button>
-                <button class="btn btn-tool" onclick="addVariable()">Variable</button>
-            </div>
-            <div class="tool-group">
-                <h3>🔷 Shapes</h3>
-                <button class="btn btn-tool" onclick="addRect()">Rectangle</button>
-                <button class="btn btn-tool" onclick="addCircle()">Circle</button>
-                <button class="btn btn-tool" onclick="addLine()">Line</button>
-            </div>
-            <div class="tool-group">
-                <h3>📊 Codes</h3>
-                <button class="btn btn-tool" onclick="addBarcode()">Barcode</button>
-                <button class="btn btn-tool" onclick="addQRCode()">QR Code</button>
-            </div>
-            <div class="tool-group">
-                <h3>🖼️ Image</h3>
-                <input type="file" id="imgUpload" accept="image/*" onchange="addImage(this)">
-            </div>
-            <div class="tool-group">
-                <h3>⚙️ Settings</h3>
-                <label>Width (mm)</label>
-                <input type="number" id="labelWidth" value="50">
-                <label>Height (mm)</label>
-                <input type="number" id="labelHeight" value="30">
-                <button class="btn btn-primary" onclick="resizeCanvas()">Apply</button>
-            </div>
+    <div id="tab-quick" class="tab-content" style="flex:1;">
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div style="width:260px;background:var(--panel);border-right:1px solid var(--border);padding:12px;overflow-y:auto;flex-shrink:0;">
+          <div class="section-title">⚡ Быстрая маркировка</div>
+          <div class="form-group"><label>Продукт</label><select id="q_product" onchange="applyNomenclatureToQuick()"></select></div>
+          <div class="info-box" id="q_productInfo" style="display:none;">
+            🌡️ <b id="q_temp">-</b> • ⏱️ <b id="q_shelf">-</b> ч<br>
+            ⚠️ <b id="q_allergens">-</b>
+          </div>
+          <div class="form-group"><label>Дата/время вскрытия</label><input type="datetime-local" id="q_date" onchange="updateQuickPreview()"></div>
+          <div class="form-group"><label>Сотрудник</label><select id="q_employee" onchange="updateQuickPreview()"></select></div>
+          <div class="form-group"><label>Или вручную</label><input type="text" id="q_employeeCustom" placeholder="Иванов И.И." oninput="updateQuickPreview()"></div>
+          <div class="form-group"><label>Партия</label><input type="text" id="q_batch" placeholder="PAR-001" oninput="updateQuickPreview()"></div>
+          <button class="btn btn-success btn-block" onclick="printQuickLabel()">🖨️ ПЕЧАТЬ</button>
+          <button class="btn btn-sm btn-accent" onclick="setQuickCurrentTime()" style="margin-top:4px;width:100%;">🕒 Текущее время</button>
         </div>
-        
-        <div class="canvas-area">
-            <canvas id="canvas" width="500" height="300"></canvas>
+        <div class="preview-area" style="flex:1;">
+          <div class="preview-controls">
+            <select id="quickLabelSize" onchange="updateQuickPreview()">
+              <option value="58x40">58×40 мм</option>
+              <option value="50x50">50×50 мм</option>
+              <option value="90x60">90×60 мм</option>
+              <option value="100x70">100×70 мм</option>
+            </select>
+            <span class="time-auto-label"><span class="live-dot"></span> Live</span>
+          </div>
+          <div class="preview-container" id="quickPreviewContainer"></div>
         </div>
-        
-        <div class="properties">
-            <div class="tool-group">
-                <h3>🎨 Properties</h3>
-                <label>Text</label>
-                <input type="text" id="propText" oninput="updateProp()">
-                <label>Font Size</label>
-                <input type="number" id="propFontSize" value="16" oninput="updateProp()">
-                <label>Color</label>
-                <div class="color-picker">
-                    <div class="color-swatch" style="background:#000" onclick="setColor('#000')"></div>
-                    <div class="color-swatch" style="background:#fff" onclick="setColor('#fff')"></div>
-                    <div class="color-swatch" style="background:#f00" onclick="setColor('#f00')"></div>
-                    <div class="color-swatch" style="background:#0f0" onclick="setColor('#0f0')"></div>
-                    <div class="color-swatch" style="background:#00f" onclick="setColor('#00f')"></div>
-                </div>
-                <input type="color" id="propColor" value="#000000" oninput="updateProp()">
-                <label>Position X</label>
-                <input type="number" id="propX" oninput="updateProp()">
-                <label>Position Y</label>
-                <input type="number" id="propY" oninput="updateProp()">
-                <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="deleteSelected()">🗑️ Delete</button>
-            </div>
-            <div class="tool-group">
-                <h3>📋 Layers</h3>
-                <div id="layersList"></div>
-            </div>
-        </div>
+      </div>
     </div>
     
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let elements = [];
-        let selected = null;
-        let mmToPx = 10;
+    <div id="tab-constructor" class="tab-content" style="flex:1;">
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div style="width:340px;background:var(--panel);border-right:1px solid var(--border);padding:12px;overflow-y:auto;flex-shrink:0;">
+          <div class="section-title">📐 Размер (мм)</div>
+          <div class="form-row">
+            <div class="form-group"><label>Ширина</label><input type="number" id="c_width" value="90" oninput="updateConstructorSize()"></div>
+            <div class="form-group"><label>Высота</label><input type="number" id="c_height" value="60" oninput="updateConstructorSize()"></div>
+          </div>
+          <div class="section-title" style="margin-top:12px;">➕ Добавить блок</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <button class="btn btn-ghost btn-block btn-sm" onclick="addBlock('text')">📝 Текст</button>
+            <button class="btn btn-ghost btn-block btn-sm" onclick="addBlock('grid2')">⊞ Таблица</button>
+            <button class="btn btn-ghost btn-block btn-sm" onclick="addBlock('qr')">🔳 QR</button>
+            <button class="btn btn-ghost btn-block btn-sm" onclick="addBlock('divider')">➖ Линия</button>
+            <button class="btn btn-ghost btn-block btn-sm" onclick="addBlock('image')">🖼️ Картинка</button>
+            <button class="btn btn-ghost btn-block btn-sm" onclick="addBlock('html')">💻 HTML</button>
+          </div>
+          <div class="section-title" style="margin-top:12px;">🛠️ Блоки (перетаскивайте)</div>
+          <div id="blockList" style="min-height:200px;"></div>
+        </div>
+        <div class="preview-area" style="flex:1;">
+          <div class="preview-container" id="constructorPreview"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="tab-settings" class="tab-content" style="flex:1;overflow:auto;padding:20px;">
+      <div style="max-width:900px;margin:0 auto;">
+        <h2 style="color:var(--accent);margin-bottom:16px;">⚙️ Настройки системы</h2>
         
-        function init() {
-            resizeCanvas();
-            draw();
-            canvas.addEventListener('mousedown', onSelect);
-            canvas.addEventListener('mousemove', onMove);
-            canvas.addEventListener('mouseup', onRelease);
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">📂 Управление базой данных</h3>
+          <div class="data-path-info" id="dataPathInfo">
+            📁 Текущий путь: <span class="path" id="currentDataPath">-- не задан --</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn btn-accent" onclick="openDatabaseFile()">📂 Выбрать файл БД</button>
+            <button class="btn btn-accent" onclick="openDatabaseFolder()">📁 Выбрать папку БД</button>
+            <button class="btn btn-ghost" onclick="resetDataPath()">🔄 Сбросить путь</button>
+            <button class="btn btn-success" onclick="reloadDatabase()">🔄 Перезагрузить БД</button>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:10px;color:var(--muted);">Или укажите URL для загрузки:</label>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <input type="url" id="dataURLInput" placeholder="https://example.com/data.json" style="flex:1;background:var(--bg);border:1px solid var(--border);color:white;padding:8px;border-radius:4px;font-size:12px;">
+              <button class="btn btn-accent" onclick="loadDataFromURL()">🌐 Загрузить</button>
+            </div>
+          </div>
+        </div>
+        
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">🎨 Цветовая схема</h3>
+          <div class="color-picker">
+            <div class="color-swatch active" style="background:#0f172a;" data-theme="dark" onclick="setTheme('dark')" title="Темная"></div>
+            <div class="color-swatch" style="background:#f1f5f9;border-color:#ccc;" data-theme="light" onclick="setTheme('light')" title="Светлая"></div>
+            <div class="color-swatch" style="background:#0c1929;" data-theme="blue" onclick="setTheme('blue')" title="Синяя"></div>
+            <div class="color-swatch" style="background:#0a1a0a;" data-theme="green" onclick="setTheme('green')" title="Зеленая"></div>
+          </div>
+        </div>
+        
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">📦 Импорт сырья (Excel/CSV)</h3>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+            Колонки: <b>Наименование</b>, <b>Срок_ч</b>, <b>Температура</b>, <b>Аллергены</b>
+          </p>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-accent" onclick="document.getElementById('excelImport').click()">📤 Загрузить</button>
+            <input type="file" id="excelImport" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importNomenclature(event)">
+            <button class="btn btn-ghost" onclick="downloadTemplate()">📄 Шаблон</button>
+          </div>
+          <div id="importLog" class="import-log">Ожидание загрузки...</div>
+        </div>
+        
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">💾 Резервное копирование</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-accent" onclick="exportAllData()">📤 Экспорт JSON</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('fullImportFile').click()">📥 Импорт JSON</button>
+            <input type="file" id="fullImportFile" accept=".json" style="display:none;" onchange="importAllData(event)">
+            <button class="btn btn-success" onclick="saveAllToFile()">💾 Сохранить в файл</button>
+            <button class="btn btn-danger" onclick="if(confirm('Сбросить ВСЕ данные?')){localStorage.clear();location.reload();}">🔄 Сброс</button>
+          </div>
+        </div>
+        
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">👥 Сотрудники</h3>
+          <textarea id="settingsEmployees" rows="4" oninput="saveSettings()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:white;padding:8px;border-radius:4px;font-size:12px;font-family:monospace;"></textarea>
+        </div>
+        
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">🔧 Восстановление шаблонов</h3>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Если шаблоны слетели, восстановите системные:</p>
+          <button class="btn btn-accent" onclick="restoreSystemTemplates()">🔄 Восстановить системные шаблоны</button>
+        </div>
+        
+        <div style="background:var(--panel);padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);">
+          <h3 style="color:var(--accent);margin-bottom:8px;">📊 Статистика системы</h3>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+            <div style="text-align:center;padding:10px;background:var(--bg);border-radius:6px;">
+              <div style="font-size:20px;font-weight:bold;color:var(--accent);" id="statTotal">0</div>
+              <div style="font-size:10px;color:var(--muted);">Всего продуктов</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--bg);border-radius:6px;">
+              <div style="font-size:20px;font-weight:bold;color:var(--success);" id="statFresh">0</div>
+              <div style="font-size:10px;color:var(--muted);">Свежие</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--bg);border-radius:6px;">
+              <div style="font-size:20px;font-weight:bold;color:var(--danger);" id="statExpired">0</div>
+              <div style="font-size:10px;color:var(--muted);">Просрочено</div>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="updateStats()" style="margin-top:8px;width:100%;">🔄 Обновить статистику</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Правая панель: Поиск, Добавление, Список сырья -->
+  <div class="right-panel" id="rightPanel">
+    <div class="right-panel-inner">
+      <div class="section">
+        <div class="section-title">⚡ Добавить / Поиск</div>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="🔍 Поиск по названию..." oninput="filterProducts()">
+        </div>
+        <div class="quick-add">
+          <input type="text" id="quickAddInput" placeholder="Название + Enter" onkeypress="if(event.key==='Enter')quickAdd()">
+          <button onclick="quickAdd()">+</button>
+        </div>
+      </div>
+      
+      <div class="section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0;">
+        <div style="padding:4px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0;">
+          <div class="section-title" style="margin:0;">📦 Сырье</div>
+          <div>
+            <button class="btn btn-sm btn-ghost" onclick="selectAll()">✓ Все</button>
+            <button class="btn btn-sm btn-ghost" onclick="clearSelection()">✕</button>
+          </div>
+        </div>
+        <div class="product-list" id="productList"></div>
+      </div>
+    </div>
+  </div>
+  
+  <button class="panel-toggle" id="rightPanelToggle" onclick="toggleRightPanel()" style="left:auto;right:0;border-radius:6px 0 0 6px;">▶</button>
+</main>
+
+<div id="printArea" class="hidden"></div>
+<div id="toast" class="toast">✅ Успешно!</div>
+
+<div class="modal" id="themeModal">
+  <div class="modal-content">
+    <h3>🎨 Выбор темы</h3>
+    <div class="color-picker" style="margin:12px 0;">
+      <div class="color-swatch active" style="background:#0f172a;" onclick="setTheme('dark');closeModal('themeModal')" title="Темная"></div>
+      <div class="color-swatch" style="background:#f1f5f9;border-color:#ccc;" onclick="setTheme('light');closeModal('themeModal')" title="Светлая"></div>
+      <div class="color-swatch" style="background:#0c1929;" onclick="setTheme('blue');closeModal('themeModal')" title="Синяя"></div>
+      <div class="color-swatch" style="background:#0a1a0a;" onclick="setTheme('green');closeModal('themeModal')" title="Зеленая"></div>
+    </div>
+    <button class="btn btn-ghost" onclick="closeModal('themeModal')">Закрыть</button>
+  </div>
+</div>
+
+<script>
+// ============ QR CODE ============
+function generateQRCodeSVG(text, size) {
+  try {
+    if (typeof qrcode === 'undefined') return '<div style="color:red;font-size:10px;">QR lib missing</div>';
+    const qr = qrcode(0, 'M');
+    qr.addData(text, 'H');
+    qr.make();
+    const moduleCount = qr.getModuleCount();
+    const cellSize = Math.floor(size / moduleCount);
+    return qr.createSvgTag(cellSize, 0);
+  } catch(e) {
+    return '<div style="color:red;font-size:10px;">QR err</div>';
+  }
+}
+
+// ============ SYSTEM TEMPLATES ============
+const SYSTEM_TEMPLATES = [
+  {
+    id: 'sys_standard', name: '📋 Стандарт ХАССП 90x60', isSystem: true, widthMm: 90, heightMm: 60,
+    blocks: [
+      {id:1,type:'text',label:'',value:'{name}',fontSize:16,isBold:true,align:'center'},
+      {id:2,type:'divider'},
+      {id:3,type:'grid2',col1Label:'Вскрыто:',col1Value:'{openDate}',col2Label:'Годен до:',col2Value:'{expiry}',fontSize:10},
+      {id:4,type:'grid2',col1Label:'Хранение:',col1Value:'{temp}',col2Label:'Вскрыл:',col2Value:'{openedBy}',fontSize:10},
+      {id:5,type:'grid2',col1Label:'Партия:',col1Value:'{batch}',col2Label:'',col2Value:'',fontSize:10},
+      {id:6,type:'text',label:'⚠ АЛЛЕРГЕНЫ:',value:'{allergens}',fontSize:10,isBold:true,color:'#d32f2f',condition:'allergens'},
+      {id:7,type:'divider'},
+      {id:8,type:'qr',qrData:'auto',size:60},
+      {id:9,type:'text',label:'',value:'ООО «ВЛАВАШЕ ФУД КОМПАНИ» | ХАССП',fontSize:7,isBold:false,align:'center'}
+    ]
+  },
+  {
+    id: 'sys_compact', name: '⚡ Компактный 58x40', isSystem: true, widthMm: 58, heightMm: 40,
+    blocks: [
+      {id:1,type:'text',label:'',value:'{name}',fontSize:12,isBold:true,align:'center'},
+      {id:2,type:'grid2',col1Label:'Вск:',col1Value:'{openDate}',col2Label:'До:',col2Value:'{expiry}',fontSize:9},
+      {id:3,type:'grid2',col1Label:'Хран:',col1Value:'{temp}',col2Label:'Кто:',col2Value:'{openedBy}',fontSize:9},
+      {id:4,type:'qr',qrData:'auto',size:40},
+      {id:5,type:'text',label:'',value:'@ASV_prod',fontSize:6,isBold:false,align:'center'}
+    ]
+  }
+];
+
+// ============ STATE ============
+let state = {
+  nomenclature: [],
+  products: [],
+  currentId: null,
+  selectedIds: new Set(),
+  settings: { employees: '', activeTemplateId: 'sys_standard', defaultEmployee: '', theme: 'dark', dataPath: '' },
+  templates: [],
+  activeTemplateId: 'sys_standard'
+};
+
+// ============ LIVE CLOCK ============
+let clockInterval = null;
+let countdownInterval = null;
+let previewUpdateInterval = null;
+
+function startLiveClock() {
+  if (clockInterval) clearInterval(clockInterval);
+  clockInterval = setInterval(() => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ru-RU', { hour12: false });
+    document.getElementById('liveClock').textContent = '⏱️ ' + timeStr;
+  }, 1000);
+  
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    updateCountdown();
+  }, 1000);
+  
+  if (previewUpdateInterval) clearInterval(previewUpdateInterval);
+  previewUpdateInterval = setInterval(() => {
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab) {
+      if (activeTab.id === 'tab-print') {
+        renderPreview();
+      } else if (activeTab.id === 'tab-quick') {
+        updateQuickPreview();
+      }
+    }
+  }, 5000);
+}
+
+function updateCountdown() {
+  const p = state.products.find(x => x.id === state.currentId);
+  if (!p || p.noExpiry || !p.openDate) {
+    document.getElementById('countdownDisplay').style.display = 'none';
+    return;
+  }
+  
+  const now = new Date();
+  const openDate = new Date(p.openDate);
+  const expiryDate = new Date(openDate);
+  expiryDate.setHours(expiryDate.getHours() + (p.shelfLife || 72));
+  
+  const diffMs = expiryDate - now;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  
+  const display = document.getElementById('countdownDisplay');
+  
+  if (diffMs <= 0) {
+    display.style.display = 'block';
+    display.className = 'countdown-box danger';
+    display.innerHTML = '⛔ СРОК ГОДНОСТИ ИСТЕК!';
+    return;
+  }
+  
+  const hours = Math.floor(diffHours);
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+  
+  display.style.display = 'block';
+  if (diffHours < 4) {
+    display.className = 'countdown-box danger';
+  } else if (diffHours < 12) {
+    display.className = 'countdown-box warning';
+  } else {
+    display.className = 'countdown-box';
+  }
+  
+  display.innerHTML = `
+    ⏳ Осталось: <b>${hours}</b> ч <b>${minutes}</b> мин <b>${seconds}</b> сек
+    <br><span style="font-size:9px;color:var(--muted);">Годен до: ${expiryDate.toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+  `;
+}
+
+// ============ SMART WRAP ============
+function smartWrap(text, maxChars) {
+  if (!text) return '';
+  if (text.length <= maxChars) return text;
+  const words = text.split(' ');
+  let result = [];
+  let currentLine = '';
+  
+  words.forEach(word => {
+    if ((currentLine + word).length <= maxChars) {
+      currentLine += (currentLine ? ' ' : '') + word;
+    } else {
+      if (currentLine) result.push(currentLine);
+      if (word.length > maxChars) {
+        for (let i = 0; i < word.length; i += maxChars) {
+          result.push(word.slice(i, i + maxChars));
         }
-        
-        function resizeCanvas() {
-            const w = parseFloat(document.getElementById('labelWidth').value) * mmToPx;
-            const h = parseFloat(document.getElementById('labelHeight').value) * mmToPx;
-            canvas.width = w;
-            canvas.height = h;
-            draw();
+        currentLine = '';
+      } else {
+        currentLine = word;
+      }
+    }
+  });
+  if (currentLine) result.push(currentLine);
+  return result.join('<br>');
+}
+
+// ============ DATA PERSISTENCE ============
+function saveAllData() {
+  localStorage.setItem('nls_nomenclature', JSON.stringify(state.nomenclature));
+  localStorage.setItem('nls_templates', JSON.stringify(state.templates));
+  localStorage.setItem('nls_settings', JSON.stringify(state.settings));
+  localStorage.setItem('nls_products', JSON.stringify(state.products));
+  localStorage.setItem('nls_selected', JSON.stringify(Array.from(state.selectedIds)));
+  localStorage.setItem('nls_current', JSON.stringify(state.currentId));
+  
+  if (window.flaskAPI) {
+    const fullData = {
+      nomenclature: state.nomenclature,
+      templates: state.templates,
+      settings: state.settings,
+      products: state.products,
+      selectedIds: Array.from(state.selectedIds),
+      currentId: state.currentId
+    };
+    fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fullData)
+    }).catch(e => console.warn('Не удалось сохранить на сервер:', e));
+  }
+}
+
+// ============ ЗАГРУЗКА ДАННЫХ ============
+async function loadAllData() {
+  let loadedFromFile = false;
+  
+  if (window.flaskAPI) {
+    try {
+      const response = await fetch('/api/load');
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.nomenclature) {
+          applyLoadedData(data);
+          loadedFromFile = true;
+          showToast('✅ Данные загружены с сервера');
         }
-        
-        function addText() {
-            elements.push({type:'text', x:50, y:50, text:'Text', fontSize:16, color:'#000'});
-            draw();
-            updateLayers();
+      }
+    } catch(e) {
+      console.warn('Не удалось загрузить с сервера:', e);
+    }
+  }
+  
+  if (!loadedFromFile) {
+    try {
+      const nom = localStorage.getItem('nls_nomenclature');
+      if (nom) state.nomenclature = JSON.parse(nom);
+      
+      const tmpl = localStorage.getItem('nls_templates');
+      if (tmpl) {
+        state.templates = JSON.parse(tmpl);
+        if (!state.templates.some(t => t.isSystem)) {
+          state.templates = [...SYSTEM_TEMPLATES, ...state.templates.filter(t => !t.isSystem)];
         }
-        
-        function addDate() {
-            const now = new Date().toLocaleDateString();
-            elements.push({type:'text', x:50, y:80, text:now, fontSize:14, color:'#000'});
-            draw();
+      } else {
+        state.templates = JSON.parse(JSON.stringify(SYSTEM_TEMPLATES));
+      }
+      
+      const settings = localStorage.getItem('nls_settings');
+      if (settings) state.settings = JSON.parse(settings);
+      
+      const prods = localStorage.getItem('nls_products');
+      if (prods) state.products = JSON.parse(prods);
+      
+      const sel = localStorage.getItem('nls_selected');
+      if (sel) state.selectedIds = new Set(JSON.parse(sel));
+      
+      const cur = localStorage.getItem('nls_current');
+      if (cur) state.currentId = JSON.parse(cur);
+      
+      state.activeTemplateId = state.settings.activeTemplateId || 'sys_standard';
+      if (!state.templates.find(t => t.id === state.activeTemplateId)) {
+        state.activeTemplateId = state.templates[0]?.id || 'sys_standard';
+      }
+      loadedFromFile = true;
+    } catch(e) {
+      console.error('Load error:', e);
+      state.templates = JSON.parse(JSON.stringify(SYSTEM_TEMPLATES));
+      state.nomenclature = [];
+      state.products = [];
+      state.selectedIds = new Set();
+      state.currentId = null;
+    }
+  }
+  
+  if (state.nomenclature.length === 0) {
+    state.nomenclature = [
+      {id:1,name:"Соус фирменный",shelfLife:48,temp:"+2...+6°C",allergens:"молоко, яйца"},
+      {id:2,name:"Филе куриное кубик",shelfLife:24,temp:"0...+4°C",allergens:""},
+      {id:3,name:"Мука пшеничная",shelfLife:4320,temp:"до +25°C",allergens:"глютен"},
+      {id:4,name:"Лаваш тонкий",shelfLife:72,temp:"0...+6°C",allergens:"глютен"}
+    ];
+    state.products = state.nomenclature.map(n => ({...n, openDate: getNowString(), openedBy: state.settings.defaultEmployee || '', batch: '', noExpiry: false}));
+    saveAllData();
+  }
+  
+  if (state.products.length === 0) {
+    state.products = state.nomenclature.map(n => ({...n, openDate: getNowString(), openedBy: state.settings.defaultEmployee || '', batch: '', noExpiry: false}));
+    saveAllData();
+  }
+  
+  if (state.currentId === null && state.products.length > 0) {
+    state.currentId = state.products[0].id;
+  }
+  
+  setTheme(state.settings.theme || 'dark');
+  updateDataPathDisplay();
+  updateStats();
+}
+
+function applyLoadedData(data) {
+  state.nomenclature = data.nomenclature || [];
+  state.templates = data.templates || [];
+  state.settings = data.settings || { employees: '', activeTemplateId: 'sys_standard', defaultEmployee: '', theme: 'dark' };
+  state.products = data.products || [];
+  state.selectedIds = new Set(data.selectedIds || []);
+  state.currentId = data.currentId || null;
+  
+  if (!state.templates.some(t => t.isSystem)) {
+    state.templates = [...SYSTEM_TEMPLATES, ...state.templates.filter(t => !t.isSystem)];
+  }
+  state.activeTemplateId = state.settings.activeTemplateId || 'sys_standard';
+  if (!state.templates.find(t => t.id === state.activeTemplateId)) {
+    state.activeTemplateId = state.templates[0]?.id || 'sys_standard';
+  }
+}
+
+function updateDataPathDisplay() {
+  const display = document.getElementById('currentDataPath');
+  if (state.settings.dataPath) {
+    display.textContent = state.settings.dataPath;
+  } else {
+    display.textContent = '-- не задан (используется localStorage) --';
+  }
+}
+
+function updateStats() {
+  const total = state.products.length;
+  let fresh = 0, expired = 0;
+  const now = new Date();
+  state.products.forEach(p => {
+    if (p.noExpiry || !p.openDate) return;
+    const exp = new Date(p.openDate);
+    exp.setHours(exp.getHours() + (p.shelfLife || 72));
+    if (exp < now) expired++;
+    else fresh++;
+  });
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statFresh').textContent = fresh;
+  document.getElementById('statExpired').textContent = expired;
+}
+
+// ============ ФУНКЦИИ РАБОТЫ С ФАЙЛАМИ (универсальные) ============
+
+function isFlaskApp() {
+  return !window.electronAPI && window.location.port === '5000';
+}
+
+async function openDatabaseFile() {
+  if (isFlaskApp()) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (data.nomenclature) {
+          await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          applyLoadedData(data);
+          state.settings.dataPath = file.name;
+          saveAllData();
+          updateDataPathDisplay();
+          initUI();
+          updateStats();
+          showToast('✅ База данных загружена: ' + file.name);
+        } else {
+          showToast('❌ Неверный формат файла', true);
         }
-        
-        function addVariable() {
-            elements.push({type:'text', x:50, y:110, text:'{VAR}', fontSize:14, color:'#00f'});
-            draw();
+      } catch(err) {
+        showToast('❌ Ошибка: ' + err.message, true);
+      }
+    };
+    input.click();
+    return;
+  }
+  
+  if (window.electronAPI) {
+    try {
+      const result = await window.electronAPI.showOpenDialog({
+        title: 'Выберите файл базы данных',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+        properties: ['openFile']
+      });
+      if (!result.canceled && result.filePaths[0]) {
+        const filePath = result.filePaths[0];
+        const data = await window.electronAPI.loadDataFromFile(filePath);
+        if (data) {
+          applyLoadedData(data);
+          state.settings.dataPath = filePath;
+          saveAllData();
+          updateDataPathDisplay();
+          initUI();
+          updateStats();
+          showToast('✅ База данных загружена: ' + filePath);
+        } else {
+          showToast('❌ Не удалось загрузить файл', true);
         }
-        
-        function addRect() {
-            elements.push({type:'rect', x:50, y:50, w:100, h:50, color:'#667eea'});
-            draw();
+      }
+    } catch(e) {
+      showToast('❌ Ошибка: ' + e.message, true);
+    }
+  } else {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (data.nomenclature) {
+          applyLoadedData(data);
+          saveAllData();
+          initUI();
+          updateStats();
+          showToast('✅ Данные загружены из: ' + file.name);
+        } else {
+          showToast('❌ Неверный формат файла', true);
         }
-        
-        function addCircle() {
-            elements.push({type:'circle', x:100, y:75, r:30, color:'#764ba2'});
-            draw();
+      } catch(err) {
+        showToast('❌ Ошибка: ' + err.message, true);
+      }
+    };
+    input.click();
+  }
+}
+
+async function openDatabaseFolder() {
+  if (isFlaskApp()) {
+    showToast('ℹ️ В этой версии используйте "Выбрать файл БД"', false);
+    return;
+  }
+  
+  if (window.electronAPI) {
+    try {
+      const result = await window.electronAPI.showOpenDialog({
+        title: 'Выберите папку с базой данных',
+        properties: ['openDirectory']
+      });
+      if (!result.canceled && result.filePaths[0]) {
+        const folderPath = result.filePaths[0];
+        const filePath = folderPath + '/vlavashe_data.json';
+        const data = await window.electronAPI.loadDataFromFile(filePath);
+        if (data) {
+          applyLoadedData(data);
+          state.settings.dataPath = filePath;
+          saveAllData();
+          updateDataPathDisplay();
+          initUI();
+          updateStats();
+          showToast('✅ База данных загружена из: ' + folderPath);
+        } else {
+          showToast('❌ Файл vlavashe_data.json не найден', true);
         }
-        
-        function addLine() {
-            elements.push({type:'line', x1:50, y1:150, x2:200, y2:150, color:'#000', width:2});
-            draw();
+      }
+    } catch(e) {
+      showToast('❌ Ошибка: ' + e.message, true);
+    }
+  } else {
+    showToast('❌ Функция доступна только в EXE-версии', true);
+  }
+}
+
+function resetDataPath() {
+  state.settings.dataPath = '';
+  saveAllData();
+  updateDataPathDisplay();
+  showToast('🔄 Путь сброшен, используется localStorage');
+  loadAllData().then(() => { initUI(); updateStats(); });
+}
+
+async function reloadDatabase() {
+  if (state.settings.dataPath) {
+    if (window.electronAPI) {
+      const data = await window.electronAPI.loadDataFromFile(state.settings.dataPath);
+      if (data) {
+        applyLoadedData(data);
+        saveAllData();
+        initUI();
+        updateStats();
+        showToast('✅ База данных перезагружена');
+        return;
+      }
+    }
+    await loadAllData();
+    initUI();
+    updateStats();
+    showToast('🔄 Данные перезагружены из локального хранилища');
+  } else {
+    showToast('ℹ️ Путь к базе не задан, используйте локальное хранилище', false);
+  }
+}
+
+async function loadDataFromURL() {
+  const url = document.getElementById('dataURLInput').value.trim();
+  if (!url) {
+    showToast('❌ Введите URL', true);
+    return;
+  }
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Ошибка загрузки: ' + response.status);
+    const data = await response.json();
+    
+    if (data.nomenclature) {
+      applyLoadedData(data);
+      saveAllData();
+      initUI();
+      updateStats();
+      showToast('✅ Данные загружены с: ' + url);
+    } else {
+      showToast('❌ Неверный формат данных', true);
+    }
+  } catch(e) {
+    showToast('❌ Ошибка: ' + e.message, true);
+  }
+}
+
+// ============ SAVE TO FILE (кнопка 💾) ============
+function saveAllToFile() {
+  const data = {
+    nomenclature: state.nomenclature,
+    templates: state.templates,
+    settings: state.settings,
+    products: state.products,
+    selectedIds: Array.from(state.selectedIds),
+    currentId: state.currentId,
+    exportDate: new Date().toISOString()
+  };
+  
+  if (window.flaskAPI) {
+    fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(response => {
+      if (response.ok) {
+        showToast('💾 Данные сохранены на сервер');
+      } else {
+        showToast('❌ Не удалось сохранить на сервер', true);
+      }
+    }).catch(() => {
+      showToast('❌ Ошибка сохранения', true);
+    });
+    return;
+  }
+  
+  if (window.electronAPI) {
+    if (state.settings.dataPath) {
+      window.electronAPI.saveDataToFile(data, state.settings.dataPath).then(success => {
+        if (success) {
+          showToast('💾 Данные сохранены в: ' + state.settings.dataPath);
+        } else {
+          showToast('❌ Не удалось сохранить файл', true);
         }
-        
-        function addBarcode() {
-            elements.push({type:'barcode', x:50, y:200, value:'1234567890', w:150, h:50});
-            draw();
-        }
-        
-        function addQRCode() {
-            elements.push({type:'qrcode', x:250, y:50, value:'QR Data', size:80});
-            draw();
-        }
-        
-        function addImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const img = new Image();
-                    img.onload = () => {
-                        elements.push({type:'image', x:50, y:50, img: img, w:100, h:100});
-                        draw();
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
+      });
+    } else {
+      window.electronAPI.showSaveDialog({
+        title: 'Сохранить данные',
+        defaultPath: 'vlavashe_data.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }]
+      }).then(result => {
+        if (!result.canceled && result.filePath) {
+          window.electronAPI.saveDataToFile(data, result.filePath).then(success => {
+            if (success) {
+              state.settings.dataPath = result.filePath;
+              saveAllData();
+              updateDataPathDisplay();
+              showToast('💾 Данные сохранены в: ' + result.filePath);
             }
+          });
         }
-        
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            elements.forEach((el, i) => {
-                if (el.type === 'text') {
-                    ctx.fillStyle = el.color;
-                    ctx.font = `${el.fontSize}px Arial`;
-                    ctx.fillText(el.text, el.x, el.y);
-                } else if (el.type === 'rect') {
-                    ctx.fillStyle = el.color;
-                    ctx.fillRect(el.x, el.y, el.w, el.h);
-                } else if (el.type === 'circle') {
-                    ctx.beginPath();
-                    ctx.arc(el.x, el.y, el.r, 0, Math.PI*2);
-                    ctx.fillStyle = el.color;
-                    ctx.fill();
-                } else if (el.type === 'line') {
-                    ctx.strokeStyle = el.color;
-                    ctx.lineWidth = el.width;
-                    ctx.beginPath();
-                    ctx.moveTo(el.x1, el.y1);
-                    ctx.lineTo(el.x2, el.y2);
-                    ctx.stroke();
-                } else if (el.type === 'barcode') {
-                    ctx.fillStyle = '#000';
-                    for(let j=0; j<el.value.length; j++) {
-                        const bw = el.w / el.value.length;
-                        ctx.fillRect(el.x + j*bw, el.y, bw/2, el.h);
-                    }
-                } else if (el.type === 'qrcode') {
-                    ctx.fillStyle = '#000';
-                    const s = el.size/10;
-                    for(let r=0; r<10; r++) {
-                        for(let c=0; c<10; c++) {
-                            if(Math.random()>0.5) ctx.fillRect(el.x+c*s, el.y+r*s, s-1, s-1);
-                        }
-                    }
-                } else if (el.type === 'image') {
-                    ctx.drawImage(el.img, el.x, el.y, el.w, el.h);
-                }
-                
-                if (selected === i) {
-                    ctx.strokeStyle = '#667eea';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(el.x-5, el.y-5, (el.w||100)+10, (el.h||el.r*2||20)+10);
-                }
-            });
+      });
+    }
+  } else {
+    downloadJSON(data);
+  }
+}
+
+function downloadJSON(data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vlavashe_data.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('💾 Файл скачан как vlavashe_data.json');
+}
+
+// ============ INIT ============
+async function init() {
+  window.flaskAPI = !window.electronAPI && window.location.port === '5000';
+  
+  await loadAllData();
+  document.getElementById('settingsEmployees').value = state.settings.employees || '';
+  initUI();
+  startLiveClock();
+  
+  const now = new Date();
+  let expiringSoon = state.products.filter(p => {
+    if (p.noExpiry || !p.openDate) return false;
+    const exp = new Date(p.openDate);
+    exp.setHours(exp.getHours() + (p.shelfLife || 72));
+    const diff = exp - now;
+    return diff > 0 && diff < 4 * 60 * 60 * 1000;
+  });
+  if (expiringSoon.length > 0) {
+    const names = expiringSoon.map(p => p.name).join(', ');
+    showToast(`⚠️ Внимание! У продуктов истекает срок: ${names}`, true);
+  }
+  
+  updateDataPathDisplay();
+  updateStats();
+}
+
+function initUI() {
+  renderTemplateSelector();
+  populateQuickSelects();
+  populateDefaultEmployeeSelect();
+  renderProducts();
+  if (state.currentId) loadToEditor(state.currentId);
+  renderPreview();
+  renderConstructor();
+  updateQuickPreview();
+  setupTabs();
+  initDragDrop();
+}
+
+function setupTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const tabId = this.dataset.tab;
+      document.getElementById('tab-' + tabId).classList.add('active');
+      if (tabId === 'constructor') renderConstructor();
+      if (tabId === 'quick') { populateQuickSelects(); updateQuickPreview(); }
+      if (tabId === 'settings') updateStats();
+    });
+  });
+}
+
+function toggleLeftPanel() {
+  const panel = document.getElementById('leftPanel');
+  const toggle = document.getElementById('leftPanelToggle');
+  panel.classList.toggle('collapsed');
+  toggle.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+}
+
+function toggleRightPanel() {
+  const panel = document.getElementById('rightPanel');
+  const toggle = document.getElementById('rightPanelToggle');
+  panel.classList.toggle('collapsed');
+  toggle.textContent = panel.classList.contains('collapsed') ? '◀' : '▶';
+}
+
+function setCurrentTime() {
+  const now = getNowString();
+  document.getElementById('f_openDate').value = now;
+  updateCurrent();
+}
+
+function setQuickCurrentTime() {
+  const now = getNowString();
+  document.getElementById('q_date').value = now;
+  updateQuickPreview();
+}
+
+// ============ THEME ============
+function setTheme(theme) {
+  document.body.className = 'theme-' + theme;
+  state.settings.theme = theme;
+  saveAllData();
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === theme);
+  });
+}
+
+function showThemeMenu() {
+  document.getElementById('themeModal').classList.add('active');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+});
+
+// ============ RESTORE TEMPLATES ============
+function restoreSystemTemplates() {
+  const sysTemplates = JSON.parse(JSON.stringify(SYSTEM_TEMPLATES));
+  const userTemplates = state.templates.filter(t => !t.isSystem);
+  state.templates = [...sysTemplates, ...userTemplates];
+  state.activeTemplateId = 'sys_standard';
+  state.settings.activeTemplateId = 'sys_standard';
+  saveAllData();
+  renderTemplateSelector();
+  renderConstructor();
+  renderPreview();
+  showToast('✅ Системные шаблоны восстановлены');
+}
+
+// ============ TEMPLATE FUNCTIONS ============
+function renderTemplateSelector() {
+  const sel = document.getElementById('templateSelector');
+  sel.innerHTML = '';
+  state.templates.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name + (t.isSystem ? ' (сист)' : '');
+    if (t.id === state.activeTemplateId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function getActiveTemplate() {
+  return state.templates.find(t => t.id === state.activeTemplateId) || state.templates[0];
+}
+
+function switchTemplate() {
+  state.activeTemplateId = document.getElementById('templateSelector').value;
+  state.settings.activeTemplateId = state.activeTemplateId;
+  saveAllData();
+  renderPreview();
+  renderConstructor();
+}
+
+function saveAsNewTemplate() {
+  const name = prompt('Название шаблона:', 'Мой шаблон ' + new Date().toLocaleDateString('ru-RU'));
+  if (!name) return;
+  const current = getActiveTemplate();
+  const newTemplate = JSON.parse(JSON.stringify(current));
+  newTemplate.id = 'user_' + Date.now();
+  newTemplate.name = name;
+  newTemplate.isSystem = false;
+  state.templates.push(newTemplate);
+  state.activeTemplateId = newTemplate.id;
+  state.settings.activeTemplateId = newTemplate.id;
+  saveAllData();
+  renderTemplateSelector();
+  renderConstructor();
+  renderPreview();
+  showToast('✅ Шаблон сохранен');
+}
+
+function deleteCurrentTemplate() {
+  const current = getActiveTemplate();
+  if (current.isSystem) return showToast('❌ Системные нельзя удалить', true);
+  if (state.templates.filter(t => !t.isSystem).length <= 1) return showToast('❌ Оставьте хотя бы один свой', true);
+  if (!confirm('Удалить "' + current.name + '"?')) return;
+  state.templates = state.templates.filter(t => t.id !== current.id);
+  state.activeTemplateId = state.templates.find(t => t.isSystem)?.id || state.templates[0].id;
+  state.settings.activeTemplateId = state.activeTemplateId;
+  saveAllData();
+  renderTemplateSelector();
+  renderConstructor();
+  renderPreview();
+  showToast('✅ Шаблон удален');
+}
+
+// ============ PRODUCT FUNCTIONS ============
+function getNowString() {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16);
+}
+
+function getProductStatus(p) {
+  if (p.noExpiry || !p.openDate) return { status: 'unknown', label: '❓', class: '' };
+  const now = new Date();
+  const openDate = new Date(p.openDate);
+  const expiryDate = new Date(openDate);
+  expiryDate.setHours(expiryDate.getHours() + (p.shelfLife || 72));
+  
+  const diffMs = expiryDate - now;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  
+  if (diffMs <= 0) return { status: 'expired', label: '⛔ Истек', class: 'status-expired' };
+  if (diffHours < 4) return { status: 'critical', label: '⚠️ Критично', class: 'status-expired' };
+  if (diffHours < 12) return { status: 'warning', label: '⚠️ Скоро', class: 'status-warning' };
+  return { status: 'fresh', label: '✅ Свежий', class: 'status-fresh' };
+}
+
+function renderProducts() {
+  const list = document.getElementById('productList');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  list.innerHTML = '';
+  let filtered = state.products;
+  if (search) {
+    filtered = state.products.filter(p => p.name.toLowerCase().includes(search));
+  }
+  filtered.forEach(p => {
+    const status = getProductStatus(p);
+    const div = document.createElement('div');
+    div.className = 'product-item' + (p.id === state.currentId ? ' selected' : '');
+    div.innerHTML = `
+      <input type="checkbox" ${state.selectedIds.has(p.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleSelect(${p.id},this.checked)">
+      <div class="product-item-info" onclick="loadToEditor(${p.id})">
+        <div class="product-item-name">${p.name}</div>
+        <div class="product-item-meta">${p.temp || ''} • ${p.shelfLife}ч ${p.allergens ? '⚠️'+p.allergens : ''}</div>
+      </div>
+      <span class="product-item-status ${status.class}">${status.label}</span>
+      <button class="product-item-del" onclick="event.stopPropagation();deleteProduct(${p.id})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function filterProducts() { renderProducts(); }
+
+function toggleSelect(id, checked) {
+  if (checked) state.selectedIds.add(id);
+  else state.selectedIds.delete(id);
+  saveAllData();
+  renderProducts();
+  renderPreview();
+}
+
+function selectAll() {
+  state.products.forEach(p => state.selectedIds.add(p.id));
+  saveAllData();
+  renderProducts();
+  renderPreview();
+}
+
+function clearSelection() {
+  state.selectedIds.clear();
+  saveAllData();
+  renderProducts();
+  renderPreview();
+}
+
+function quickAdd() {
+  const input = document.getElementById('quickAddInput');
+  const name = input.value.trim();
+  if (!name) return;
+  const newId = Date.now();
+  const newItem = { id: newId, name: name, shelfLife: 72, temp: '+2...+6°C', allergens: '' };
+  state.nomenclature.push(newItem);
+  state.products.push({...newItem, openDate: getNowString(), openedBy: state.settings.defaultEmployee || '', batch: '', noExpiry: false});
+  state.currentId = newId;
+  state.selectedIds.add(newId);
+  input.value = '';
+  document.getElementById('searchInput').value = '';
+  saveAllData();
+  renderProducts();
+  loadToEditor(newId);
+  renderPreview();
+  populateQuickSelects();
+  updateStats();
+  showToast('✅ Добавлено');
+}
+
+function deleteProduct(id) {
+  if (!confirm('Удалить?')) return;
+  state.products = state.products.filter(p => p.id !== id);
+  state.nomenclature = state.nomenclature.filter(n => n.id !== id);
+  state.selectedIds.delete(id);
+  if (state.currentId === id) state.currentId = state.products[0]?.id || null;
+  saveAllData();
+  renderProducts();
+  if (state.currentId) loadToEditor(state.currentId);
+  renderPreview();
+  populateQuickSelects();
+  updateStats();
+}
+
+function loadToEditor(id) {
+  state.currentId = id;
+  const p = state.products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('f_name').value = p.name || '';
+  document.getElementById('f_shelfLife').value = p.shelfLife || 72;
+  document.getElementById('f_temp').value = p.temp || '';
+  document.getElementById('f_allergens').value = p.allergens || '';
+  document.getElementById('f_openedBy').value = p.openedBy || state.settings.defaultEmployee || '';
+  document.getElementById('f_batch').value = p.batch || '';
+  document.getElementById('f_openDate').value = p.openDate || getNowString();
+  document.getElementById('f_noExpiry').checked = p.noExpiry || false;
+  recalcExpiry();
+  updateCountdown();
+  renderProducts();
+  renderPreview();
+}
+
+function updateCurrent() {
+  const p = state.products.find(x => x.id === state.currentId);
+  if (!p) return;
+  p.name = document.getElementById('f_name').value;
+  p.shelfLife = parseInt(document.getElementById('f_shelfLife').value) || 72;
+  p.temp = document.getElementById('f_temp').value;
+  p.allergens = document.getElementById('f_allergens').value;
+  p.openedBy = document.getElementById('f_openedBy').value;
+  p.batch = document.getElementById('f_batch').value;
+  p.openDate = document.getElementById('f_openDate').value;
+  p.noExpiry = document.getElementById('f_noExpiry').checked;
+  recalcExpiry();
+  updateCountdown();
+  saveAllData();
+  renderProducts();
+  renderPreview();
+  updateStats();
+}
+
+function recalcExpiry() {
+  const noExp = document.getElementById('f_noExpiry').checked;
+  if (noExp) {
+    document.getElementById('f_expiry').value = '_______________';
+    document.getElementById('countdownDisplay').style.display = 'none';
+  } else {
+    const openDate = document.getElementById('f_openDate').value;
+    const hours = parseInt(document.getElementById('f_shelfLife').value) || 0;
+    if (openDate && hours > 0) {
+      const d = new Date(openDate);
+      d.setHours(d.getHours() + hours);
+      document.getElementById('f_expiry').value = d.toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      updateCountdown();
+    } else {
+      document.getElementById('f_expiry').value = '_______________';
+    }
+  }
+}
+
+// ============ EMPLOYEE ============
+function populateDefaultEmployeeSelect() {
+  const sel = document.getElementById('defaultEmployeeSelect');
+  const currentVal = state.settings.defaultEmployee || '';
+  sel.innerHTML = '<option value="">-- Не выбран --</option>';
+  (state.settings.employees || '').split('\n').map(e => e.trim()).filter(e => e).forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e;
+    opt.textContent = e;
+    if (e === currentVal) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function setDefaultEmployee() {
+  state.settings.defaultEmployee = document.getElementById('defaultEmployeeSelect').value;
+  state.products.forEach(p => {
+    if (!p.openedBy || p.openedBy.trim() === '') {
+      p.openedBy = state.settings.defaultEmployee;
+    }
+  });
+  saveAllData();
+  renderProducts();
+  if (state.currentId) loadToEditor(state.currentId);
+  renderPreview();
+  showToast('✅ Сотрудник установлен');
+}
+
+// ============ QUICK TEMPLATES ============
+function populateQuickSelects() {
+  const prodSel = document.getElementById('q_product');
+  const curVal = prodSel.value;
+  prodSel.innerHTML = '<option value="">-- Выберите --</option>';
+  state.nomenclature.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n.id;
+    opt.textContent = n.name;
+    prodSel.appendChild(opt);
+  });
+  prodSel.value = curVal;
+  
+  const empSel = document.getElementById('q_employee');
+  empSel.innerHTML = '<option value="">-- Выберите --</option>';
+  (state.settings.employees || '').split('\n').map(e => e.trim()).filter(e => e).forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e;
+    opt.textContent = e;
+    if (e === state.settings.defaultEmployee) opt.selected = true;
+    empSel.appendChild(opt);
+  });
+}
+
+function applyNomenclatureToQuick() {
+  const prodId = document.getElementById('q_product').value;
+  const product = state.nomenclature.find(n => n.id == prodId);
+  const infoBox = document.getElementById('q_productInfo');
+  if (product) {
+    infoBox.style.display = 'block';
+    document.getElementById('q_temp').textContent = product.temp || 'Н/Д';
+    document.getElementById('q_shelf').textContent = product.shelfLife || 'Н/Д';
+    document.getElementById('q_allergens').textContent = product.allergens || 'Нет';
+    if (!document.getElementById('q_date').value) document.getElementById('q_date').value = getNowString();
+  } else {
+    infoBox.style.display = 'none';
+  }
+  updateQuickPreview();
+}
+
+function updateQuickPreview() {
+  const prodId = document.getElementById('q_product').value;
+  const product = state.nomenclature.find(n => n.id == prodId);
+  if (!product) {
+    document.getElementById('quickPreviewContainer').innerHTML = '<p style="color:var(--muted);">Выберите продукт</p>';
+    return;
+  }
+  
+  const emp = document.getElementById('q_employeeCustom').value || document.getElementById('q_employee').value || state.settings.defaultEmployee || 'Не указано';
+  const batch = document.getElementById('q_batch').value || 'Не указано';
+  const dateVal = document.getElementById('q_date').value || getNowString();
+  const dateStr = new Date(dateVal).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  
+  const now = new Date();
+  const openDate = new Date(dateVal);
+  let expiryStr = '_______________';
+  if (product.shelfLife && dateVal) {
+    const d = new Date(openDate);
+    d.setHours(d.getHours() + parseInt(product.shelfLife));
+    expiryStr = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  
+  const sizeStr = document.getElementById('quickLabelSize').value;
+  const [w, h] = sizeStr.split('x').map(Number);
+  const pxW = w * 3.78, pxH = h * 3.78;
+  const container = document.getElementById('quickPreviewContainer');
+  container.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'label-canvas';
+  label.style.width = pxW + 'px';
+  label.style.minHeight = pxH + 'px';
+  
+  const qrData = `НАЗВАНИЕ: ${product.name}\nВСКРЫТО: ${dateStr}\nГОДЕН ДО: ${expiryStr}\nВСКРЫЛ: ${emp}\nПАРТИЯ: ${batch}\nХРАНЕНИЕ: ${product.temp || 'Н/Д'}`;
+  
+  label.innerHTML = `
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px;text-align:center;">${smartWrap(product.name, 20)}</div>
+    <div style="height:1px;background:#000;margin:4px 0;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:9px;margin-bottom:3px;">
+      <div><b>Вскрыто:</b> ${dateStr}</div>
+      <div><b>Годен до:</b> ${expiryStr}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:9px;margin-bottom:3px;">
+      <div><b>Хранение:</b> ${product.temp || 'Н/Д'}</div>
+      <div><b>Вскрыл:</b> ${emp}</div>
+    </div>
+    <div style="font-size:9px;margin-bottom:3px;"><b>Партия:</b> ${batch}</div>
+    ${product.allergens ? `<div style="font-size:9px;color:#d32f2f;"><b>⚠ АЛЛЕРГЕНЫ:</b> ${product.allergens}</div>` : ''}
+    <div style="height:1px;background:#000;margin:4px 0;"></div>
+    <div style="display:flex;justify-content:center;margin:4px 0;">${generateQRCodeSVG(qrData, 70)}</div>
+    <div style="font-size:6px;color:#666;text-align:center;margin-top:auto;">🧠 NEURAL LABEL | ХАССП</div>
+  `;
+  container.appendChild(label);
+}
+
+function printQuickLabel() {
+  const canvas = document.querySelector('#quickPreviewContainer .label-canvas');
+  if (!canvas) return;
+  const sizeStr = document.getElementById('quickLabelSize').value;
+  const [w, h] = sizeStr.split('x').map(Number);
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = '';
+  printArea.classList.remove('hidden');
+  const clone = canvas.cloneNode(true);
+  clone.className = 'print-single';
+  clone.style.width = w + 'mm';
+  clone.style.height = h + 'mm';
+  clone.style.padding = '1mm';
+  printArea.appendChild(clone);
+  
+  const style = document.createElement('style');
+  style.id = 'print-style';
+  style.textContent = `@page{size:${w}mm ${h}mm;margin:0;}`;
+  document.head.appendChild(style);
+  
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      printArea.classList.add('hidden');
+      printArea.innerHTML = '';
+      const s = document.getElementById('print-style');
+      if (s) s.remove();
+    }, 300);
+  }, 300);
+}
+
+// ============ LABEL RENDERING ============
+function buildLabelData(p) {
+  const openDate = p.openDate ? new Date(p.openDate).toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  }) : '___.___.____ __:__';
+  let expiry;
+  if (p.noExpiry) {
+    expiry = '_______________';
+  } else if (p.openDate && p.shelfLife > 0) {
+    const d = new Date(p.openDate);
+    d.setHours(d.getHours() + p.shelfLife);
+    expiry = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } else {
+    expiry = '_______________';
+  }
+  return {
+    name: p.name || '___',
+    openDate: openDate,
+    expiry: expiry,
+    temp: p.temp || '___',
+    openedBy: p.openedBy || '___',
+    batch: p.batch || '___',
+    allergens: p.allergens || ''
+  };
+}
+
+function replaceVars(text, data) {
+  return text.replace(/\{name\}/g, data.name)
+    .replace(/\{openDate\}/g, data.openDate)
+    .replace(/\{expiry\}/g, data.expiry)
+    .replace(/\{temp\}/g, data.temp)
+    .replace(/\{openedBy\}/g, data.openedBy)
+    .replace(/\{batch\}/g, data.batch)
+    .replace(/\{allergens\}/g, data.allergens);
+}
+
+function renderLabel(data, sizeMm, isPrint) {
+  const pxPerMm = 3.78;
+  const w = sizeMm[0] * pxPerMm;
+  const div = document.createElement('div');
+  div.className = 'label-canvas';
+  div.style.width = w + 'px';
+  div.style.minHeight = (sizeMm[1] * pxPerMm) + 'px';
+  div.style.fontSize = '10px';
+  
+  const template = getActiveTemplate();
+  template.blocks.forEach(block => {
+    if (block.condition === 'allergens' && !data.allergens) return;
+    
+    if (block.type === 'text') {
+      const row = document.createElement('div');
+      row.className = 'lbl-row';
+      row.style.fontSize = (block.fontSize || 10) + 'px';
+      row.style.justifyContent = block.align === 'center' ? 'center' : (block.align === 'right' ? 'flex-end' : 'flex-start');
+      const text = replaceVars(block.value || '', data);
+      const wrappedText = smartWrap(text, 30);
+      if (block.align === 'center') {
+        const span = document.createElement('span');
+        span.style.fontWeight = block.isBold ? 800 : 400;
+        span.style.color = block.color || '#000';
+        span.innerHTML = wrappedText;
+        if (!isPrint) makeInlineEditable(span, block.id, 'value');
+        row.appendChild(span);
+      } else {
+        const lSpan = document.createElement('span');
+        lSpan.className = 'lbl-label';
+        lSpan.style.fontWeight = block.isBold ? 800 : 400;
+        lSpan.style.color = block.color || '#000';
+        lSpan.innerText = replaceVars(block.label || '', data);
+        if (!isPrint) makeInlineEditable(lSpan, block.id, 'label');
+        const vSpan = document.createElement('span');
+        vSpan.className = 'lbl-value';
+        vSpan.style.fontWeight = block.isBold ? 800 : 400;
+        vSpan.style.color = block.color || '#000';
+        vSpan.innerHTML = wrappedText;
+        if (!isPrint) makeInlineEditable(vSpan, block.id, 'value');
+        row.appendChild(lSpan);
+        row.appendChild(vSpan);
+      }
+      div.appendChild(row);
+    } else if (block.type === 'grid2') {
+      const row = document.createElement('div');
+      row.className = 'lbl-row';
+      row.style.fontSize = (block.fontSize || 10) + 'px';
+      row.style.display = 'grid';
+      row.style.gridTemplateColumns = '1fr 1fr';
+      row.style.gap = '4px';
+      const c1 = document.createElement('div');
+      const c1l = document.createElement('span');
+      c1l.className = 'lbl-label';
+      c1l.innerText = replaceVars(block.col1Label || '', data);
+      if (!isPrint) makeInlineEditable(c1l, block.id, 'col1Label');
+      const c1v = document.createElement('span');
+      c1v.className = 'lbl-value';
+      c1v.innerHTML = smartWrap(replaceVars(block.col1Value || '', data), 20);
+      if (!isPrint) makeInlineEditable(c1v, block.id, 'col1Value');
+      c1.appendChild(c1l);
+      c1.appendChild(c1v);
+      const c2 = document.createElement('div');
+      const c2l = document.createElement('span');
+      c2l.className = 'lbl-label';
+      c2l.innerText = replaceVars(block.col2Label || '', data);
+      if (!isPrint) makeInlineEditable(c2l, block.id, 'col2Label');
+      const c2v = document.createElement('span');
+      c2v.className = 'lbl-value';
+      c2v.innerHTML = smartWrap(replaceVars(block.col2Value || '', data), 20);
+      if (!isPrint) makeInlineEditable(c2v, block.id, 'col2Value');
+      c2.appendChild(c2l);
+      c2.appendChild(c2v);
+      row.appendChild(c1);
+      row.appendChild(c2);
+      div.appendChild(row);
+    } else if (block.type === 'divider') {
+      const d = document.createElement('div');
+      d.className = 'lbl-divider';
+      div.appendChild(d);
+    } else if (block.type === 'qr') {
+      const qrDiv = document.createElement('div');
+      qrDiv.className = 'lbl-qr';
+      const size = block.size || 55;
+      const qrText = `НАЗВАНИЕ: ${data.name}\nВСКРЫТО: ${data.openDate}\nГОДЕН ДО: ${data.expiry}\nВСКРЫЛ: ${data.openedBy}\nПАРТИЯ: ${data.batch}\nХРАНЕНИЕ: ${data.temp}`;
+      qrDiv.innerHTML = generateQRCodeSVG(qrText, size);
+      qrDiv.style.width = size + 'px';
+      qrDiv.style.height = size + 'px';
+      div.appendChild(qrDiv);
+    } else if (block.type === 'image') {
+      const imgDiv = document.createElement('div');
+      imgDiv.style.display = 'flex';
+      imgDiv.style.justifyContent = 'center';
+      imgDiv.style.margin = '2px 0';
+      if (block.imageData) {
+        const img = document.createElement('img');
+        img.src = block.imageData;
+        img.style.maxWidth = (block.imageWidth || 80) + 'px';
+        img.style.maxHeight = (block.imageHeight || 40) + 'px';
+        img.style.objectFit = 'contain';
+        imgDiv.appendChild(img);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'border:1px dashed #999;padding:8px;font-size:9px;color:#999;text-align:center;';
+        placeholder.innerText = '🖼️ Нажмите для загрузки';
+        if (!isPrint) {
+          placeholder.style.cursor = 'pointer';
+          placeholder.onclick = () => uploadImage(block.id);
         }
-        
-        function onSelect(e) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            for(let i=elements.length-1; i>=0; i--) {
-                const el = elements[i];
-                if (x >= el.x && x <= el.x+(el.w||el.r*2||100) && y >= el.y && y <= el.y+(el.h||el.r*2||20)) {
-                    selected = i;
-                    document.getElementById('propText').value = el.text || '';
-                    document.getElementById('propFontSize').value = el.fontSize || 16;
-                    document.getElementById('propColor').value = el.color || '#000000';
-                    document.getElementById('propX').value = el.x;
-                    document.getElementById('propY').value = el.y;
-                    draw();
-                    updateLayers();
-                    return;
-                }
+        imgDiv.appendChild(placeholder);
+      }
+      div.appendChild(imgDiv);
+    } else if (block.type === 'html') {
+      const d = document.createElement('div');
+      d.innerHTML = replaceVars(block.htmlContent || '', data);
+      if (!isPrint) {
+        d.contentEditable = true;
+        d.className += ' inline-editable';
+        d.addEventListener('blur', (e) => {
+          const t = getActiveTemplate();
+          const b = t.blocks.find(x => x.id === block.id);
+          if (b) { b.htmlContent = e.target.innerHTML; saveAllData(); showToast('✅ HTML сохранен'); }
+        });
+      }
+      div.appendChild(d);
+    }
+  });
+  return div;
+}
+
+function uploadImage(blockId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const t = getActiveTemplate();
+      const b = t.blocks.find(x => x.id === blockId);
+      if (b) {
+        b.imageData = ev.target.result;
+        saveAllData();
+        renderConstructor();
+        showToast('✅ Изображение загружено');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function makeInlineEditable(element, blockId, field) {
+  element.contentEditable = true;
+  element.className += ' inline-editable';
+  element.addEventListener('blur', () => {
+    const template = getActiveTemplate();
+    const block = template.blocks.find(b => b.id === blockId);
+    if (block) {
+      block[field] = element.innerText;
+      saveAllData();
+      showToast('✅ Сохранено');
+    }
+  });
+  element.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); element.blur(); }
+  });
+}
+
+function renderPreview() {
+  const container = document.getElementById('previewContainer');
+  container.innerHTML = '';
+  const mode = document.getElementById('printMode').value;
+  const template = getActiveTemplate();
+  const w = parseInt(document.getElementById('printWidth').value) || template.widthMm || 90;
+  const h = parseInt(document.getElementById('printHeight').value) || template.heightMm || 60;
+  const size = [w, h];
+  
+  if (mode === 'single') {
+    const p = state.products.find(x => x.id === state.currentId);
+    if (!p) { container.innerHTML = '<p style="color:var(--muted);">Выберите продукт</p>'; return; }
+    container.appendChild(renderLabel(buildLabelData(p), size, false));
+  } else {
+    const selected = state.products.filter(p => state.selectedIds.has(p.id));
+    if (selected.length === 0) { container.innerHTML = '<p style="color:var(--muted);">Выберите продукты</p>'; return; }
+    const [cols, rows] = document.getElementById('batchLayout').value.split('x').map(Number);
+    const batch = document.createElement('div');
+    batch.className = 'batch-preview';
+    batch.style.gridTemplateColumns = `repeat(${cols}, ${size[0] * 3.78}px)`;
+    selected.slice(0, cols * rows).forEach(p => {
+      const label = renderLabel(buildLabelData(p), size, false);
+      label.className = 'batch-label';
+      label.style.width = (size[0] * 3.78) + 'px';
+      batch.appendChild(label);
+    });
+    container.appendChild(batch);
+  }
+}
+
+function debugQR() {
+  const p = state.products.find(x => x.id === state.currentId);
+  if (!p) return alert('Выберите продукт');
+  const data = buildLabelData(p);
+  alert(`🔍 QR-СОДЕРЖИМОЕ:\n\nНАЗВАНИЕ: ${data.name}\nВСКРЫТО: ${data.openDate}\nГОДЕН ДО: ${data.expiry}\nВСКРЫЛ: ${data.openedBy}\nПАРТИЯ: ${data.batch}\nХРАНЕНИЕ: ${data.temp}`);
+}
+
+// ============ ОБЫЧНАЯ ПЕЧАТЬ ============
+function printLabels() {
+  const mode = document.getElementById('printMode').value;
+  const template = getActiveTemplate();
+  const w = parseInt(document.getElementById('printWidth').value) || template.widthMm || 90;
+  const h = parseInt(document.getElementById('printHeight').value) || template.heightMm || 60;
+  const size = [w, h];
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = '';
+  printArea.classList.remove('hidden');
+
+  // Удаляем старый динамический стиль печати
+  const oldStyle = document.getElementById('print-style');
+  if (oldStyle) oldStyle.remove();
+
+  if (mode === 'single') {
+    const p = state.products.find(x => x.id === state.currentId);
+    if (!p) { alert('Выберите продукт'); printArea.classList.add('hidden'); return; }
+
+    const label = renderLabel(buildLabelData(p), size, true);
+    label.className = 'print-single';
+    // Жёстко фиксируем размер этикетки = размеру страницы
+    label.style.cssText = `
+      width: ${w}mm;
+      height: ${h}mm;
+      padding: 2mm;
+      margin: 0;
+      box-sizing: border-box;
+      background: white;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    `;
+    printArea.style.cssText = `
+      position: fixed;
+      left: 0; top: 0;
+      width: ${w}mm;
+      height: ${h}mm;
+      margin: 0; padding: 0;
+      background: white;
+      overflow: hidden;
+    `;
+    printArea.appendChild(label);
+
+    // @page точно по размеру стикера — одна этикетка = одна страница
+    const style = document.createElement('style');
+    style.id = 'print-style';
+    style.textContent = `@page { size: ${w}mm ${h}mm; margin: 0; }`;
+    document.head.appendChild(style);
+
+  } else {
+    // Пакетная печать на A4
+    const selected = state.products.filter(p => state.selectedIds.has(p.id));
+    if (selected.length === 0) { alert('Выберите продукты'); printArea.classList.add('hidden'); return; }
+    const [cols, rows] = document.getElementById('batchLayout').value.split('x').map(Number);
+    const perPage = cols * rows;
+
+    printArea.style.cssText = `
+      position: fixed;
+      left: 0; top: 0;
+      margin: 0; padding: 0;
+      background: white;
+    `;
+
+    for (let i = 0; i < selected.length; i += perPage) {
+      const page = document.createElement('div');
+      page.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(${cols}, ${w}mm);
+        gap: 0;
+        padding: 0;
+        margin: 0;
+        background: white;
+        page-break-after: always;
+        break-after: page;
+      `;
+      selected.slice(i, i + perPage).forEach(p => {
+        const label = renderLabel(buildLabelData(p), size, true);
+        label.className = 'batch-label';
+        label.style.cssText = `
+          width: ${w}mm;
+          height: ${h}mm;
+          padding: 2mm;
+          margin: 0;
+          box-sizing: border-box;
+          border: 0.5px solid #999;
+          background: white;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        `;
+        page.appendChild(label);
+      });
+      printArea.appendChild(page);
+    }
+
+    const style = document.createElement('style');
+    style.id = 'print-style';
+    style.textContent = `@page { size: A4 portrait; margin: 0; }`;
+    document.head.appendChild(style);
+  }
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      printArea.classList.add('hidden');
+      printArea.innerHTML = '';
+      printArea.style.cssText = '';
+      const s = document.getElementById('print-style');
+      if (s) s.remove();
+    }, 600);
+  }, 300);
+}
+
+// ============ ПЕЧАТЬ ДЛЯ DATAMAX / ПРИНТЕРОВ ЭТИКЕТОК ============
+// Ключевые правила для печати на принтере этикеток:
+// 1. @page size = точный размер стикера (например 90x60мм)
+// 2. printArea = position:fixed, width/height = размер стикера
+// 3. Одна этикетка = один элемент, без flex-wrap, без дочерних страниц
+// 4. Никаких padding/margin на body, html, @page
+function printLabelsForDatamax() {
+    const mode = document.getElementById('printMode').value;
+    const template = getActiveTemplate();
+    const w = parseInt(document.getElementById('printWidth').value) || template.widthMm || 90;
+    const h = parseInt(document.getElementById('printHeight').value) || template.heightMm || 60;
+    const size = [w, h];
+
+    const printArea = document.getElementById('printArea');
+    printArea.innerHTML = '';
+    printArea.classList.remove('hidden');
+
+    // Удаляем старый стиль
+    const oldStyle = document.getElementById('print-style');
+    if (oldStyle) oldStyle.remove();
+
+    if (mode === 'single') {
+        // ── ОДНА ЭТИКЕТКА ──────────────────────────────────
+        const p = state.products.find(x => x.id === state.currentId);
+        if (!p) { alert('Выберите продукт'); printArea.classList.add('hidden'); return; }
+
+        const label = renderLabel(buildLabelData(p), size, true);
+
+        // Этикетка = ровно размер стикера, никаких flex/grid оберток
+        label.style.cssText = `
+            display: block;
+            width: ${w}mm;
+            height: ${h}mm;
+            min-height: ${h}mm;
+            max-height: ${h}mm;
+            padding: 2mm;
+            margin: 0;
+            border: none;
+            box-sizing: border-box;
+            background: white;
+            overflow: hidden;
+            font-size: 9px;
+            position: relative;
+        `;
+
+        // printArea = строго по размеру этикетки, position:fixed
+        printArea.style.cssText = `
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: ${w}mm;
+            height: ${h}mm;
+            margin: 0;
+            padding: 0;
+            background: white;
+            overflow: hidden;
+        `;
+        printArea.appendChild(label);
+
+        // @page по размеру стикера → принтер получит ровно один стикер
+        const style = document.createElement('style');
+        style.id = 'print-style';
+        style.textContent = `
+            @page {
+                size: ${w}mm ${h}mm;
+                margin: 0;
             }
-            selected = null;
-            draw();
-        }
-        
-        let dragging = false;
-        function onMove(e) {
-            if (dragging && selected !== null) {
-                const rect = canvas.getBoundingClientRect();
-                elements[selected].x = e.clientX - rect.left;
-                elements[selected].y = e.clientY - rect.top;
-                draw();
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: ${w}mm !important;
+                height: ${h}mm !important;
+                overflow: hidden !important;
+                background: white !important;
             }
-        }
-        
-        function onRelease() { dragging = false; }
-        
-        function updateProp() {
-            if (selected !== null) {
-                const el = elements[selected];
-                if (el.text !== undefined) el.text = document.getElementById('propText').value;
-                if (el.fontSize !== undefined) el.fontSize = parseInt(document.getElementById('propFontSize').value);
-                if (el.color !== undefined) el.color = document.getElementById('propColor').value;
-                if (el.x !== undefined) el.x = parseInt(document.getElementById('propX').value);
-                if (el.y !== undefined) el.y = parseInt(document.getElementById('propY').value);
-                draw();
+        `;
+        document.head.appendChild(style);
+
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                printArea.classList.add('hidden');
+                printArea.innerHTML = '';
+                printArea.style.cssText = '';
+                const s = document.getElementById('print-style');
+                if (s) s.remove();
+            }, 600);
+        }, 300);
+
+    } else {
+        // ── ПАКЕТ: каждая этикетка = отдельная страница ───
+        const selected = state.products.filter(p => state.selectedIds.has(p.id));
+        if (selected.length === 0) { alert('Выберите продукты'); printArea.classList.add('hidden'); return; }
+
+        printArea.style.cssText = `
+            position: fixed;
+            left: 0;
+            top: 0;
+            margin: 0;
+            padding: 0;
+            background: white;
+            width: ${w}mm;
+        `;
+
+        selected.forEach((p, idx) => {
+            const label = renderLabel(buildLabelData(p), size, true);
+            label.style.cssText = `
+                display: block;
+                width: ${w}mm;
+                height: ${h}mm;
+                min-height: ${h}mm;
+                max-height: ${h}mm;
+                padding: 2mm;
+                margin: 0;
+                border: none;
+                box-sizing: border-box;
+                background: white;
+                overflow: hidden;
+                font-size: 9px;
+                position: relative;
+                page-break-after: always;
+                break-after: page;
+            `;
+            printArea.appendChild(label);
+        });
+
+        // Каждая страница = размер стикера → каждая этикетка на свой стикер
+        const style = document.createElement('style');
+        style.id = 'print-style';
+        style.textContent = `
+            @page {
+                size: ${w}mm ${h}mm;
+                margin: 0;
             }
-        }
-        
-        function setColor(c) {
-            if (selected !== null) {
-                elements[selected].color = c;
-                document.getElementById('propColor').value = c;
-                draw();
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
             }
+        `;
+        document.head.appendChild(style);
+
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                printArea.classList.add('hidden');
+                printArea.innerHTML = '';
+                printArea.style.cssText = '';
+                const s = document.getElementById('print-style');
+                if (s) s.remove();
+            }, 600);
+        }, 300);
+    }
+}
+
+// ============ CONSTRUCTOR WITH DRAG & DROP ============
+function initDragDrop() {
+  const list = document.getElementById('blockList');
+  
+  list.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.draggable-block');
+    if (!item) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.dataset.blockId);
+    item.classList.add('dragging');
+  });
+  
+  list.addEventListener('dragend', (e) => {
+    const item = e.target.closest('.draggable-block');
+    if (item) item.classList.remove('dragging');
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  });
+  
+  list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest('.draggable-block');
+    if (target) {
+      target.classList.add('drag-over');
+    }
+  });
+  
+  list.addEventListener('dragleave', (e) => {
+    const target = e.target.closest('.draggable-block');
+    if (target) target.classList.remove('drag-over');
+  });
+  
+  list.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const target = e.target.closest('.draggable-block');
+    if (!target) return;
+    target.classList.remove('drag-over');
+    
+    const fromId = parseInt(e.dataTransfer.getData('text/plain'));
+    const toId = parseInt(target.dataset.blockId);
+    if (fromId === toId) return;
+    
+    const t = getActiveTemplate();
+    const fromIndex = t.blocks.findIndex(b => b.id === fromId);
+    const toIndex = t.blocks.findIndex(b => b.id === toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    
+    const [removed] = t.blocks.splice(fromIndex, 1);
+    t.blocks.splice(toIndex, 0, removed);
+    saveAllData();
+    renderBlocks();
+    renderConstructorPreview();
+    showToast('✅ Блок перемещен');
+  });
+}
+
+function updateConstructorSize() {
+  const t = getActiveTemplate();
+  t.widthMm = parseFloat(document.getElementById('c_width').value) || 90;
+  t.heightMm = parseFloat(document.getElementById('c_height').value) || 60;
+  saveAllData();
+  renderConstructorPreview();
+}
+
+function addBlock(type) {
+  const t = getActiveTemplate();
+  const id = Date.now();
+  let b = {id, type};
+  if (type === 'text') Object.assign(b, {label:'Поле:', value:'Значение', fontSize:11, isBold:false, align:'left'});
+  else if (type === 'grid2') Object.assign(b, {col1Label:'Поле1:', col1Value:'Данные', col2Label:'Поле2:', col2Value:'Данные', fontSize:10});
+  else if (type === 'qr') Object.assign(b, {qrData:'auto', size:55});
+  else if (type === 'image') Object.assign(b, {imageData:null, imageWidth:80, imageHeight:40});
+  else if (type === 'html') Object.assign(b, {htmlContent:'<div>HTML</div>'});
+  t.blocks.push(b);
+  saveAllData();
+  renderBlocks();
+  renderConstructorPreview();
+}
+
+function delBlock(id) {
+  const t = getActiveTemplate();
+  t.blocks = t.blocks.filter(b => b.id !== id);
+  saveAllData();
+  renderBlocks();
+  renderConstructorPreview();
+}
+
+function updateBlock(id, key, val) {
+  const t = getActiveTemplate();
+  const b = t.blocks.find(x => x.id === id);
+  if (!b) return;
+  if (key === 'isBold') val = val === 'true' || val === true;
+  if (key === 'fontSize' || key === 'size' || key === 'imageWidth' || key === 'imageHeight') val = parseFloat(val) || 0;
+  b[key] = val;
+  saveAllData();
+  renderConstructorPreview();
+}
+
+function renderBlocks() {
+  const t = getActiveTemplate();
+  const list = document.getElementById('blockList');
+  list.innerHTML = '';
+  t.blocks.forEach((b, index) => {
+    const div = document.createElement('div');
+    div.className = 'draggable-block';
+    div.draggable = true;
+    div.dataset.blockId = b.id;
+    div.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:4px;padding:8px;margin-bottom:6px;font-size:11px;';
+    
+    let fields = '';
+    if (b.type === 'text') {
+      fields = `
+        <div style="display:flex;gap:4px;margin-bottom:4px;">
+          <input placeholder="Метка" value="${b.label||''}" oninput="updateBlock(${b.id},'label',this.value)" style="flex:1;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+          <input placeholder="Значение" value="${b.value||''}" oninput="updateBlock(${b.id},'value',this.value)" style="flex:2;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+        </div>
+        <div style="display:flex;gap:4px;">
+          <input type="number" value="${b.fontSize||11}" oninput="updateBlock(${b.id},'fontSize',this.value)" style="width:50px;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+          <select onchange="updateBlock(${b.id},'align',this.value)" style="flex:1;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+            <option value="left"${b.align==='left'?' selected':''}>Слева</option>
+            <option value="center"${b.align==='center'?' selected':''}>Центр</option>
+          </select>
+          <input type="color" value="${b.color||'#000000'}" oninput="updateBlock(${b.id},'color',this.value)" style="width:30px;height:24px;padding:0;border:none;background:transparent;">
+        </div>
+        <label style="font-size:10px;display:block;margin-top:3px;">
+          <input type="checkbox" ${b.isBold?'checked':''} onchange="updateBlock(${b.id},'isBold',this.checked)"> Жирный
+        </label>`;
+    } else if (b.type === 'grid2') {
+      fields = `
+        <div style="display:flex;gap:4px;margin-bottom:4px;">
+          <input placeholder="Метка1" value="${b.col1Label||''}" oninput="updateBlock(${b.id},'col1Label',this.value)" style="flex:1;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+          <input placeholder="Знач1" value="${b.col1Value||''}" oninput="updateBlock(${b.id},'col1Value',this.value)" style="flex:1;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+        </div>
+        <div style="display:flex;gap:4px;">
+          <input placeholder="Метка2" value="${b.col2Label||''}" oninput="updateBlock(${b.id},'col2Label',this.value)" style="flex:1;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+          <input placeholder="Знач2" value="${b.col2Value||''}" oninput="updateBlock(${b.id},'col2Value',this.value)" style="flex:1;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;">
+        </div>
+        <input type="number" value="${b.fontSize||10}" oninput="updateBlock(${b.id},'fontSize',this.value)" style="width:50px;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;font-size:10px;margin-top:3px;">`;
+    } else if (b.type === 'qr') {
+      fields = `<div style="font-size:10px;color:var(--muted);">Размер: <input type="number" value="${b.size||55}" oninput="updateBlock(${b.id},'size',this.value)" style="width:60px;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;"></div>`;
+    } else if (b.type === 'image') {
+      fields = `
+        <div style="display:flex;gap:4px;margin-bottom:3px;">
+          <label style="font-size:10px;color:var(--muted);">Ш: <input type="number" value="${b.imageWidth||80}" oninput="updateBlock(${b.id},'imageWidth',this.value)" style="width:50px;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;"></label>
+          <label style="font-size:10px;color:var(--muted);">В: <input type="number" value="${b.imageHeight||40}" oninput="updateBlock(${b.id},'imageHeight',this.value)" style="width:50px;background:#1e293b;border:1px solid #334155;color:white;padding:3px 6px;border-radius:3px;"></label>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="uploadImage(${b.id})">🖼️ Загрузить</button>
+        ${b.imageData ? `<div style="font-size:9px;color:var(--success);margin-top:3px;">✅ Изображение загружено</div>` : ''}`;
+    } else if (b.type === 'html') {
+      fields = `<textarea oninput="updateBlock(${b.id},'htmlContent',this.value)" style="width:100%;min-height:40px;background:#1e293b;border:1px solid #334155;color:white;padding:4px;border-radius:3px;font-size:10px;font-family:monospace;">${b.htmlContent||''}</textarea>`;
+    }
+    
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="display:flex;align-items:center;gap:4px;">
+          <span class="drag-handle" title="Перетащите для изменения порядка">⠿</span>
+          <span style="background:#3b82f6;color:white;padding:1px 6px;border-radius:3px;font-size:9px;text-transform:uppercase;">${b.type}</span>
+          <span style="font-size:9px;color:var(--muted);">#${index + 1}</span>
+        </span>
+        <div style="display:flex;gap:2px;">
+          <button onclick="delBlock(${b.id})" style="background:transparent;border:1px solid #ef4444;color:#ef4444;width:20px;height:20px;border-radius:3px;cursor:pointer;font-size:10px;">✕</button>
+        </div>
+      </div>
+      ${fields}`;
+    list.appendChild(div);
+  });
+}
+
+function renderConstructor() {
+  const t = getActiveTemplate();
+  document.getElementById('c_width').value = t.widthMm || 90;
+  document.getElementById('c_height').value = t.heightMm || 60;
+  renderBlocks();
+  renderConstructorPreview();
+}
+
+function renderConstructorPreview() {
+  const p = document.getElementById('constructorPreview');
+  p.innerHTML = '';
+  const t = getActiveTemplate();
+  const w = t.widthMm || 90;
+  const h = t.heightMm || 60;
+  const sampleData = {
+    name: 'Соус фирменный',
+    openDate: new Date().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    expiry: new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    temp: '+2...+6°C',
+    openedBy: state.settings.defaultEmployee || 'Иванов И.И.',
+    batch: 'PAR-001',
+    allergens: 'молоко, яйца'
+  };
+  p.appendChild(renderLabel(sampleData, [w, h], false));
+}
+
+// ============ EXCEL/CSV IMPORT ============
+function importNomenclature(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const log = document.getElementById('importLog');
+  log.innerHTML = `<div>📂 Чтение: ${file.name}...</div>`;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(firstSheet, {defval: ""});
+      if (json.length === 0) throw new Error("Файл пуст");
+      let imported = 0, errors = 0;
+      json.forEach((row, idx) => {
+        const name = row['Наименование'] || row['Название'] || row['Name'] || row['Продукт'] || `Сырье_${idx+1}`;
+        const shelf = parseInt(row['Срок_ч'] || row['Срок после вскрытия'] || row['ShelfLife'] || row['Срок'] || 72);
+        const temp = row['Температура'] || row['Хранение'] || row['Temp'] || "+2...+6°C";
+        const allergens = row['Аллергены'] || row['Allergens'] || "";
+        if (!name) { errors++; return; }
+        const existing = state.nomenclature.find(n => n.name.toLowerCase() === name.toLowerCase());
+        if (existing) {
+          existing.shelfLife = shelf;
+          existing.temp = temp;
+          existing.allergens = allergens;
+        } else {
+          state.nomenclature.push({id: Date.now() + idx, name, shelfLife: isNaN(shelf) ? 72 : shelf, temp, allergens});
         }
-        
-        function deleteSelected() {
-            if (selected !== null) {
-                elements.splice(selected, 1);
-                selected = null;
-                draw();
-                updateLayers();
-            }
-        }
-        
-        function updateLayers() {
-            const list = document.getElementById('layersList');
-            list.innerHTML = elements.map((el,i) => 
-                `<div style="padding:5px;background:${i===selected?'#e0e0ff':'#f0f0f0'};margin:2px;border-radius:3px;cursor:pointer" onclick="selected=${i};draw()">${el.type} ${el.text||''}</div>`
-            ).join('');
-        }
-        
-        function saveTemplate() {
-            const name = prompt('Template name:');
-            if (!name) return;
-            
-            fetch('/api/templates', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name: name,
-                    content: {elements: elements, width: canvas.width/mmToPx, height: canvas.height/mmToPx},
-                    width: parseFloat(document.getElementById('labelWidth').value),
-                    height: parseFloat(document.getElementById('labelHeight').value)
-                })
-            }).then(r=>r.json()).then(d=>{
-                if(d.success) alert('Saved!');
-            });
-        }
-        
-        function printLabel() {
-            const copies = prompt('Copies:', '1');
-            fetch('/api/print', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({copies: parseInt(copies)})
-            }).then(r=>r.json()).then(d=>{
-                if(d.success) alert('Print job sent!');
-            });
-        }
-        
-        init();
-    </script>
+        imported++;
+      });
+      saveAllData();
+      state.products = state.nomenclature.map(n => ({...n, openDate: getNowString(), openedBy: state.settings.defaultEmployee || '', batch: '', noExpiry: false}));
+      renderProducts();
+      populateQuickSelects();
+      updateStats();
+      log.innerHTML += `<div class="success">✅ Импортировано: ${imported} | Ошибок: ${errors}</div>`;
+      showToast(`✅ Загружено ${imported} позиций`);
+    } catch(err) {
+      log.innerHTML += `<div class="error">❌ Ошибка: ${err.message}</div>`;
+      showToast('❌ Ошибка импорта', true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+function downloadTemplate() {
+  const template = [
+    {"Наименование": "Соус фирменный", "Срок_ч": 48, "Температура": "+2...+6°C", "Аллергены": "молоко, яйца"},
+    {"Наименование": "Филе куриное", "Срок_ч": 24, "Температура": "0...+4°C", "Аллергены": ""}
+  ];
+  const ws = XLSX.utils.json_to_sheet(template);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Шаблон");
+  XLSX.writeFile(wb, "Шаблон_сырья_Влаваше.xlsx");
+  showToast('📄 Шаблон скачан');
+}
+
+// ============ SETTINGS ============
+function saveSettings() {
+  state.settings.employees = document.getElementById('settingsEmployees').value;
+  saveAllData();
+  populateQuickSelects();
+  populateDefaultEmployeeSelect();
+  showToast('✅ Настройки сохранены');
+}
+
+function exportAllData() {
+  const data = {
+    nomenclature: state.nomenclature,
+    templates: state.templates,
+    settings: state.settings,
+    products: state.products,
+    selectedIds: Array.from(state.selectedIds),
+    currentId: state.currentId,
+    exportDate: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vlavashe_full_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📤 Экспорт выполнен');
+}
+
+function importAllData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.nomenclature) state.nomenclature = data.nomenclature;
+      if (data.templates) state.templates = data.templates;
+      if (data.settings) state.settings = data.settings;
+      if (data.products) state.products = data.products;
+      if (data.selectedIds) state.selectedIds = new Set(data.selectedIds);
+      if (data.currentId) state.currentId = data.currentId;
+      if (!state.templates.some(t => t.isSystem)) {
+        state.templates = [...SYSTEM_TEMPLATES, ...state.templates.filter(t => !t.isSystem)];
+      }
+      saveAllData();
+      initUI();
+      updateStats();
+      showToast('✅ Импорт выполнен');
+    } catch(err) {
+      showToast('❌ Ошибка: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ============ TOAST ============
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============ INIT ============
+init();
+</script>
 </body>
 </html>
