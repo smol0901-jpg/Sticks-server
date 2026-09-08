@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инвентарь - Sticker Printer Pro</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root { --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --muted: #94a3b8; --accent: #3b82f6; --border: #334155; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .header { background: var(--panel); padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .header h1 { font-size: 18px; color: var(--accent); }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav a { color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 6px; transition: 0.2s; font-size: 13px; }
+        .nav a:hover, .nav a.active { background: var(--accent); color: white; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 13px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .card { background: var(--panel); border-radius: 12px; padding: 15px; border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-title { font-weight: 600; color: var(--accent); }
+        .card-body { font-size: 13px; color: var(--muted); }
+        .card-body p { margin: 5px 0; }
+        .status { padding: 3px 8px; border-radius: 10px; font-size: 11px; }
+        .status-ok { background: rgba(16,185,129,0.2); color: var(--success); }
+        .status-warn { background: rgba(245,158,11,0.2); color: var(--warning); }
+        .status-exp { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--panel); padding: 25px; border-radius: 12px; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--muted); }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .nav { width: 100%; justify-content: center; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📦 Инвентарь (Сырьё)</h1>
+        <nav class="nav">
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/constructor">🎨 Constructor</a>
+            <a href="/wall">💬 Wall</a>
+            <a href="/printers">🖨️ Printers</a>
+            <a href="/inventory" class="active">📦 Inventory</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/logout">🚪 Logout</a>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Поиск сырья..." oninput="renderItems()">
+            <select id="filterStatus" onchange="renderItems()">
+                <option value="">Все статусы</option>
+                <option value="ok">В норме</option>
+                <option value="warn">Заканчивается</option>
+                <option value="exp">Истекло</option>
+            </select>
+            <button class="btn btn-primary" onclick="openModal()">+ Добавить сырьё</button>
+            <button class="btn btn-success" onclick="exportJSON()">📥 Экспорт JSON</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📤 Импорт JSON</button>
+            <input type="file" id="importFile" accept=".json,.json.gz" style="display:none" onchange="importJSON(this)">
+        </div>
+        
+        <div class="grid" id="itemsGrid"></div>
+    </div>
+    
+    <div class="modal" id="itemModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--accent);">Добавить/Редактировать сырьё</h2>
+            <input type="hidden" id="itemId">
+            <div class="form-group">
+                <label>Название</label>
+                <input type="text" id="itemName" required>
+            </div>
+            <div class="form-group">
+                <label>Артикул/Код</label>
+                <input type="text" id="itemCode">
+            </div>
+            <div class="form-group">
+                <label>Количество</label>
+                <input type="number" id="itemQuantity" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Единица измерения</label>
+                <select id="itemUnit">
+                    <option value="kg">кг</option>
+                    <option value="g">г</option>
+                    <option value="l">л</option>
+                    <option value="ml">мл</option>
+                    <option value="pcs">шт</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Дата производства</label>
+                <input type="date" id="itemMfgDate">
+            </div>
+            <div class="form-group">
+                <label>Срок годности (дней)</label>
+                <input type="number" id="itemShelfLife">
+            </div>
+            <div class="form-group">
+                <label>Условия хранения</label>
+                <textarea id="itemStorage" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Минимальный остаток</label>
+                <input type="number" id="itemMinQty" step="0.01">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveItem()" style="flex:1">Сохранить</button>
+                <button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Отмена</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let items = [];
+        
+        async function loadItems() {
+            const res = await fetch('/api/raw-materials');
+            items = await res.json();
+            renderItems();
+        }
+        
+        function renderItems() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+            
+            const filtered = items.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) || (item.code && item.code.toLowerCase().includes(search));
+                const status = getItemStatus(item);
+                const matchStatus = !statusFilter || status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+            
+            document.getElementById('itemsGrid').innerHTML = filtered.map(item => {
+                const status = getItemStatus(item);
+                const statusText = status === 'ok' ? 'В норме' : status === 'warn' ? 'Заканчивается' : 'Истекло';
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">${escapeHtml(item.name)}</span>
+                            <span class="status status-${status}">${statusText}</span>
+                        </div>
+                        <div class="card-body">
+                            <p>Артикул: ${item.code || 'N/A'}</p>
+                            <p>Количество: ${item.quantity} ${item.unit}</p>
+                            <p>Мин. остаток: ${item.min_quantity || 'N/A'}</p>
+                            <p>Произведено: ${item.manufacture_date || 'N/A'}</p>
+                            <p>Срок годности: ${item.shelf_life_days || 'N/A'} дн.</p>
+                            <p>Годен до: ${getExpiryDate(item)}</p>
+                            <p>Условия: ${item.storage_conditions || 'N/A'}</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 10px;">
+                            <button class="btn btn-ghost" style="flex:1" onclick="editItem(${item.id})">✏️ Редактировать</button>
+                            <button class="btn btn-danger" style="flex:1" onclick="deleteItem(${item.id})">🗑️ Удалить</button>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p style="color: var(--muted); grid-column: 1/-1; text-align: center;">Нет данных</p>';
+        }
+        
+        function getItemStatus(item) {
+            if (!item.manufacture_date || !item.shelf_life_days) return 'ok';
+            const mfg = new Date(item.manufacture_date);
+            const expiry = new Date(mfg.getTime() + item.shelf_life_days * 24 * 60 * 60 * 1000);
+            const now = new Date();
+            const daysLeft = (expiry - now) / (24 * 60 * 60 * 1000);
+            if (daysLeft < 0) return 'exp';
+            if (daysLeft < 7) return 'warn';
+            return 'ok';
+        }
+        
+        function getExpiryDate(item) {
+            if (!item.manufacture_date || !item.shelf_life_days) return 'N/A';
+            const mfg = new Date(item.manufacture_date);
+            const expiry = new Date(mfg.getTime() + item.shelf_life_days * 24 * 60 * 60 * 1000);
+            return expiry.toLocaleDateString('ru-RU');
+        }
+        
+        function openModal() {
+            document.getElementById('itemId').value = '';
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemCode').value = '';
+            document.getElementById('itemQuantity').value = '';
+            document.getElementById('itemMfgDate').value = '';
+            document.getElementById('itemShelfLife').value = '';
+            document.getElementById('itemStorage').value = '';
+            document.getElementById('itemMinQty').value = '';
+            document.getElementById('itemModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('itemModal').classList.remove('active');
+        }
+        
+        function editItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+            document.getElementById('itemId').value = item.id;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemCode').value = item.code || '';
+            document.getElementById('itemQuantity').value = item.quantity;
+            document.getElementById('itemUnit').value = item.unit;
+            document.getElementById('itemMfgDate').value = item.manufacture_date || '';
+            document.getElementById('itemShelfLife').value = item.shelf_life_days || '';
+            document.getElementById('itemStorage').value = item.storage_conditions || '';
+            document.getElementById('itemMinQty').value = item.min_quantity || '';
+            document.getElementById('itemModal').classList.add('active');
+        }
+        
+        async function saveItem() {
+            const id = document.getElementById('itemId').value;
+            const data = {
+                name: document.getElementById('itemName').value,
+                code: document.getElementById('itemCode').value,
+                quantity: parseFloat(document.getElementById('itemQuantity').value) || 0,
+                unit: document.getElementById('itemUnit').value,
+                manufacture_date: document.getElementById('itemMfgDate').value || null,
+                shelf_life_days: parseInt(document.getElementById('itemShelfLife').value) || null,
+                storage_conditions: document.getElementById('itemStorage').value,
+                min_quantity: parseFloat(document.getElementById('itemMinQty').value) || null
+            };
+            
+            const res = await fetch('/api/raw-materials', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                closeModal();
+                loadItems();
+            }
+        }
+        
+        async function deleteItem(id) {
+            if (!confirm('Удалить это сырьё?')) return;
+            // Need to add DELETE endpoint
+            alert('Функция удаления будет добавлена');
+        }
+        
+        async function exportJSON() {
+            const res = await fetch('/api/export', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'raw_materials'})
+            });
+            const data = await res.json();
+            if (data.success) window.location.href = data.download_url;
+        }
+        
+        async function importJSON(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/import', { method: 'POST', body: formData });
+            const result = await res.json();
+            if (result.success) {
+                alert('Импорт успешен!');
+                loadItems();
+            } else {
+                alert('Ошибка импорта: ' + result.error);
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        loadItems();
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Стена - Sticker Printer Pro</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --accent: #3b82f6;
+            --border: #334155;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .header { background: var(--panel); padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .header h1 { font-size: 18px; color: var(--accent); }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav a { color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 6px; transition: 0.2s; font-size: 13px; }
+        .nav a:hover, .nav a.active { background: var(--accent); color: white; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .post-form { background: var(--panel); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .post-form textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; resize: vertical; min-height: 80px; font-size: 14px; margin-bottom: 10px; }
+        .post-form-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 13px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+        .btn:hover { opacity: 0.85; }
+        .file-input { display: none; }
+        .posts { display: flex; flex-direction: column; gap: 15px; }
+        .post { background: var(--panel); border-radius: 12px; padding: 15px; border: 1px solid var(--border); }
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .post-author { font-weight: 600; color: var(--accent); font-size: 14px; }
+        .post-date { color: var(--muted); font-size: 11px; }
+        .post-content { font-size: 14px; line-height: 1.5; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+        .post-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
+        .post-media img, .post-media video { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+        .post-actions { display: flex; gap: 15px; padding-top: 10px; border-top: 1px solid var(--border); }
+        .post-action { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+        .post-action:hover { color: var(--accent); }
+        .post-action.liked { color: #ef4444; }
+        .pinned { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; }
+        .pin-badge { background: #f59e0b; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { max-width: 90%; max-height: 90%; }
+        .modal-content img, .modal-content video { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+        .modal-close { position: absolute; top: 20px; right: 20px; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; }
+        @media (max-width: 768px) { .container { padding: 10px; } .nav { width: 100%; justify-content: center; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 Стена</h1>
+        <nav class="nav">
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/constructor">🎨 Constructor</a>
+            <a href="/wall" class="active">💬 Wall</a>
+            <a href="/printers">🖨️ Printers</a>
+            <a href="/inventory">📦 Inventory</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/logout">🚪 Logout</a>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div class="post-form">
+            <textarea id="postContent" placeholder="Что хотите поделиться с коллегами? Текст, фото, видео, аудио..."></textarea>
+            <div class="post-form-actions">
+                <button class="btn btn-primary" onclick="createPost()">📝 Опубликовать</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()">📎 Прикрепить файлы</button>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*,video/*,audio/*" onchange="handleFiles(this.files)">
+                <span id="fileCount" style="color: var(--muted); font-size: 12px;"></span>
+            </div>
+        </div>
+        
+        <div class="posts" id="postsList"></div>
+    </div>
+    
+    <div class="modal" id="mediaModal" onclick="this.classList.remove('active')">
+        <button class="modal-close">&times;</button>
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let attachedFiles = [];
+        
+        async function loadPosts() {
+            const res = await fetch('/api/wall/posts');
+            const posts = await res.json();
+            renderPosts(posts);
+        }
+        
+        function renderPosts(posts) {
+            const container = document.getElementById('postsList');
+            container.innerHTML = posts.map(post => `
+                <div class="post ${post.pinned ? 'pinned' : ''}">
+                    <div class="post-header">
+                        <div>
+                            <span class="post-author">${escapeHtml(post.author_name)}</span>
+                            ${post.pinned ? '<span class="pin-badge">📌 Закреплено</span>' : ''}
+                        </div>
+                        <span class="post-date">${formatDate(post.created_at)}</span>
+                    </div>
+                    <div class="post-content">${escapeHtml(post.content)}</div>
+                    ${post.media && post.media.length ? `
+                        <div class="post-media">
+                            ${post.media.map(m => {
+                                if (m.type.startsWith('image/')) return `<img src="/uploads/${m.filename}" onclick="viewMedia('${m.filename}', 'image')">`;
+                                if (m.type.startsWith('video/')) return `<video src="/uploads/${m.filename}" onclick="viewMedia('${m.filename}', 'video')" controls></video>`;
+                                if (m.type.startsWith('audio/')) return `<audio src="/uploads/${m.filename}" controls></audio>`;
+                                return `<a href="/uploads/${m.filename}" download>📎 ${m.filename}</a>`;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="post-actions">
+                        <button class="post-action ${post.liked ? 'liked' : ''}" onclick="likePost(${post.id})">
+                            ❤️ ${post.likes || 0}
+                        </button>
+                        <button class="post-action" onclick="togglePin(${post.id})">📌 Закрепить</button>
+                        <button class="post-action" onclick="sharePost(${post.id})">🔗 Поделиться</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function createPost() {
+            const content = document.getElementById('postContent').value;
+            if (!content && !attachedFiles.length) return alert('Введите текст или прикрепите файлы');
+            
+            const formData = new FormData();
+            formData.append('content', content);
+            attachedFiles.forEach(file => formData.append('files', file));
+            
+            const res = await fetch('/api/wall/posts', { method: 'POST', body: formData });
+            const result = await res.json();
+            if (result.success) {
+                document.getElementById('postContent').value = '';
+                attachedFiles = [];
+                document.getElementById('fileCount').textContent = '';
+                loadPosts();
+                socket.emit('new_post', result.post);
+            }
+        }
+        
+        function handleFiles(files) {
+            attachedFiles = [...attachedFiles, ...Array.from(files)].slice(0, 100);
+            document.getElementById('fileCount').textContent = `Прикреплено файлов: ${attachedFiles.length}`;
+        }
+        
+        async function likePost(id) {
+            await fetch(`/api/wall/posts/${id}/like`, { method: 'POST' });
+            loadPosts();
+        }
+        
+        async function togglePin(id) {
+            await fetch(`/api/wall/posts/${id}/pin`, { method: 'POST' });
+            loadPosts();
+        }
+        
+        function sharePost(id) {
+            navigator.clipboard.writeText(`${window.location.origin}/wall?post=${id}`);
+            alert('Ссылка скопирована!');
+        }
+        
+        function viewMedia(filename, type) {
+            const modal = document.getElementById('mediaModal');
+            const content = document.getElementById('modalContent');
+            if (type === 'image') content.innerHTML = `<img src="/uploads/${filename}">`;
+            else if (type === 'video') content.innerHTML = `<video src="/uploads/${filename}" controls autoplay></video>`;
+            modal.classList.add('active');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleString('ru-RU');
+        }
+        
+        socket.on('new_post', () => loadPosts());
+        loadPosts();
+        setInterval(loadPosts, 30000);
+    </script>
+</body>
+</html>

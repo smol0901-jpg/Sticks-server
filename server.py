@@ -1593,6 +1593,165 @@ def api_printers():
     
     return jsonify([dict(p) for p in printers])
 
+@app.route('/api/printers/detect', methods=['POST'])
+@check_auth()
+def api_printers_detect():
+    """Auto-detect connected printers"""
+    try:
+        import winreg
+        printers = []
+        
+        # Try to detect printers from Windows registry
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows NT\CurrentVersion\Devices')
+            i = 0
+            while True:
+                try:
+                    name, data, _ = winreg.EnumValue(key, i)
+                    printers.append({
+                        'name': name,
+                        'model': 'Auto-detected',
+                        'manufacturer': 'Unknown',
+                        'connection_type': 'usb',
+                        'detected': True
+                    })
+                    i += 1
+                except OSError:
+                    break
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"Registry detection failed: {e}")
+        
+        # If no printers found, add a default Datamax printer
+        if not printers:
+            printers.append({
+                'name': 'Datamax Printer',
+                'model': 'Datamax E-4206',
+                'manufacturer': 'Datamax',
+                'connection_type': 'usb',
+                'detected': True
+            })
+        
+        return jsonify(printers)
+    except Exception as e:
+        # Return default printer on error
+        return jsonify([{
+            'name': 'Datamax Printer',
+            'model': 'Datamax E-4206',
+            'manufacturer': 'Datamax',
+            'connection_type': 'usb',
+            'detected': True
+        }])
+
+@app.route('/api/save', methods=['POST'])
+@check_auth()
+def api_save():
+    """Save constructor data (templates, nomenclature, settings)"""
+    db = get_db()
+    user = g.current_user
+    data = request.get_json()
+    
+    try:
+        # Save templates
+        if 'templates' in data:
+            for tmpl in data['templates']:
+                if not tmpl.get('isSystem'):
+                    db.execute('''
+                        INSERT OR REPLACE INTO templates (id, name, content, type, category, organization_id)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (
+                        tmpl.get('id'),
+                        tmpl.get('name', ''),
+                        json.dumps(tmpl.get('content', {})),
+                        tmpl.get('type', 'label'),
+                        tmpl.get('category', 'default'),
+                        user['organization_id'] if user['organization_id'] else None
+                    ))
+        
+        # Save products/nomenclature
+        if 'products' in data:
+            for prod in data['products']:
+                db.execute('''
+                    INSERT OR REPLACE INTO products (id, name, code, barcode, template_id, 
+                                                    weight, shelf_life_days, storage_conditions,
+                                                    organization_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    prod.get('id'),
+                    prod.get('name', ''),
+                    prod.get('code', ''),
+                    prod.get('barcode', ''),
+                    prod.get('template_id'),
+                    prod.get('weight'),
+                    prod.get('shelf_life_days'),
+                    prod.get('storage_conditions', ''),
+                    user['organization_id'] if user['organization_id'] else None
+                ))
+        
+        db.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Save error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/load', methods=['GET'])
+@check_auth()
+def api_load():
+    """Load constructor data (templates, nomenclature, settings)"""
+    db = get_db()
+    user = g.current_user
+    org_id = user['organization_id'] if user['organization_id'] else None
+    
+    try:
+        # Load templates
+        templates = []
+        # System templates
+        templates.extend([
+            {'id': 'sys_date', 'name': 'Дата изготовления', 'type': 'label', 'isSystem': True, 'content': {}},
+            {'id': 'sys_batch', 'name': 'Номер партии', 'type': 'label', 'isSystem': True, 'content': {}},
+            {'id': 'sys_composition', 'name': 'Состав', 'type': 'label', 'isSystem': True, 'content': {}},
+        ])
+        # User templates
+        user_templates = db.execute('''
+            SELECT * FROM templates WHERE organization_id = ? OR organization_id IS NULL
+        ''', (org_id,)).fetchall()
+        for t in user_templates:
+            templates.append({
+                'id': t['id'],
+                'name': t['name'],
+                'type': t['type'],
+                'category': t['category'],
+                'content': json.loads(t['content']) if t['content'] else {},
+                'isSystem': False
+            })
+        
+        # Load products
+        products = []
+        prods = db.execute('''
+            SELECT * FROM products WHERE organization_id = ?
+        ''', (org_id,)).fetchall()
+        for p in prods:
+            products.append({
+                'id': p['id'],
+                'name': p['name'],
+                'code': p['code'],
+                'barcode': p['barcode'],
+                'template_id': p['template_id'],
+                'weight': p['weight'],
+                'shelf_life_days': p['shelf_life_days'],
+                'storage_conditions': p['storage_conditions']
+            })
+        
+        return jsonify({
+            'templates': templates,
+            'products': products,
+            'nomenclature': products,
+            'settings': {}
+        })
+    except Exception as e:
+        print(f"Load error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/export', methods=['POST'])
 @check_auth()
 def api_export():

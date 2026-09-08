@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Sticker Printer Pro</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root { --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --muted: #94a3b8; --accent: #3b82f6; --border: #334155; --success: #10b981; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .header { background: var(--panel); padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .header h1 { font-size: 18px; color: var(--accent); }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav a { color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 6px; transition: 0.2s; font-size: 13px; }
+        .nav a:hover, .nav a.active { background: var(--accent); color: white; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .card { background: var(--panel); border-radius: 12px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .card h2 { color: var(--accent); margin-bottom: 20px; font-size: 16px; }
+        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--muted); font-size: 13px; }
+        .info-value { font-weight: 600; font-size: 14px; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 13px; margin-right: 10px; margin-bottom: 10px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--muted); }
+        .form-group input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 6px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg); padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--accent); }
+        .stat-label { font-size: 12px; color: var(--muted); margin-top: 5px; }
+        @media (max-width: 768px) { .nav { width: 100%; justify-content: center; } .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👤 Профиль</h1>
+        <nav class="nav">
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/constructor">🎨 Constructor</a>
+            <a href="/wall">💬 Wall</a>
+            <a href="/printers">🖨️ Printers</a>
+            <a href="/inventory">📦 Inventory</a>
+            <a href="/profile" class="active">👤 Profile</a>
+            <a href="/logout">🚪 Logout</a>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2>ℹ️ Информация о пользователе</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statPrints">0</div>
+                    <div class="stat-label">Всего напечатано</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTemplates">0</div>
+                    <div class="stat-label">Создано шаблонов</div>
+                </div>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Имя пользователя</span>
+                <span class="info-value" id="username">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Роль</span>
+                <span class="info-value" id="role">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value" id="email">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Дата регистрации</span>
+                <span class="info-value" id="created">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Пароль установлен</span>
+                <span class="info-value" id="hasPassword">-</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🔐 Изменить пароль</h2>
+            <div class="form-group">
+                <label>Новый пароль</label>
+                <input type="password" id="newPassword" placeholder="Минимум 6 символов">
+            </div>
+            <div class="form-group">
+                <label>Подтвердите пароль</label>
+                <input type="password" id="confirmPassword" placeholder="Повторите пароль">
+            </div>
+            <button class="btn btn-primary" onclick="changePassword()">Сохранить пароль</button>
+            <button class="btn btn-ghost" onclick="removePassword()" id="removePassBtn">Удалить пароль</button>
+        </div>
+        
+        <div class="card">
+            <h2>⚙️ Настройки</h2>
+            <div class="form-group">
+                <label>Имя для печати на этикетках (HACCP)</label>
+                <input type="text" id="labelName" placeholder="Ваше имя будет печататься на этикетках">
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()">Сохранить настройки</button>
+        </div>
+        
+        <div class="card">
+            <h2>📱 QR Вход</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Отсканируйте QR код для быстрого входа с телефона</p>
+            <button class="btn btn-success" onclick="showQRCode()">Показать QR код</button>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let currentUser = null;
+        
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                // Get current user from session (simplified)
+                const me = users.find(u => u.username === (sessionStorage.getItem('username') || 'admin')) || users[0];
+                currentUser = me;
+                
+                document.getElementById('username').textContent = me.username;
+                document.getElementById('role').textContent = me.role || 'employee';
+                document.getElementById('email').textContent = me.email || 'Не указан';
+                document.getElementById('created').textContent = new Date(me.created_at).toLocaleDateString('ru-RU');
+                document.getElementById('hasPassword').textContent = me.has_password ? '✅ Да' : '❌ Нет';
+                document.getElementById('statPrints').textContent = me.prints_count || 0;
+                document.getElementById('statTemplates').textContent = me.templates_count || 0;
+                
+                // Load settings
+                const settingsRes = await fetch('/api/settings');
+                const settings = await settingsRes.json();
+                document.getElementById('labelName').value = settings.label_name || '';
+            } catch(e) {
+                console.error('Error loading profile:', e);
+            }
+        }
+        
+        async function changePassword() {
+            const pass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            
+            if (pass.length < 6) return alert('Пароль должен быть минимум 6 символов');
+            if (pass !== confirm) return alert('Пароли не совпадают');
+            
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: currentUser.username, password: pass})
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Пароль изменён!');
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                loadProfile();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        }
+        
+        async function removePassword() {
+            if (!confirm('Вы уверены? Вход без пароля менее безопасен.')) return;
+            // Would need endpoint to remove password
+            alert('Функция удаления пароля будет добавлена');
+        }
+        
+        async function saveSettings() {
+            const labelName = document.getElementById('labelName').value;
+            const res = await fetch('/api/settings', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({label_name: labelName})
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Настройки сохранены!');
+            }
+        }
+        
+        async function showQRCode() {
+            window.open('/qr-login', '_blank');
+        }
+        
+        loadProfile();
+    </script>
+</body>
+</html>
