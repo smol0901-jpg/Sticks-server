@@ -6,7 +6,6 @@
     <title>Dashboard - Sticker Printer</title>
     <link rel="manifest" href="/static/manifest.json">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; }
@@ -84,10 +83,6 @@
         
         <div class="grid-2">
             <div class="panel">
-                <h2>📈 Print Analytics</h2>
-                <canvas id="printChart"></canvas>
-            </div>
-            <div class="panel">
                 <h2>⚠️ Expiring Products</h2>
                 <table>
                     <thead><tr><th>Name</th><th>Expiry Date</th><th>Status</th></tr></thead>
@@ -105,6 +100,23 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div class="panel">
+                <h2>📊 Quick Stats</h2>
+                <div style="display: grid; gap: 15px;">
+                    <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 10px;">
+                        <div style="font-size: 14px; opacity: 0.9;">Prints Today</div>
+                        <div style="font-size: 36px; font-weight: bold;">{{ stats.total_prints_today }}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 20px; border-radius: 10px;">
+                        <div style="font-size: 14px; opacity: 0.9;">Templates</div>
+                        <div style="font-size: 36px; font-weight: bold;">{{ stats.total_templates }}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe, #00f2fe); color: white; padding: 20px; border-radius: 10px;">
+                        <div style="font-size: 14px; opacity: 0.9;">Products</div>
+                        <div style="font-size: 36px; font-weight: bold;">{{ stats.total_products }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -135,21 +147,6 @@
         socket.on('print_job', (data) => {
             console.log('New print job:', data);
             alert(`New print job: ${data.copies} copies`);
-        });
-        
-        // Print analytics chart
-        const ctx = document.getElementById('printChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Prints',
-                    data: [12, 19, 3, 5, 2, 3, {{ stats.total_prints_today }}],
-                    backgroundColor: '#667eea'
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
         });
         
         async function exportData() {

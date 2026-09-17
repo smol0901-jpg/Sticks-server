@@ -7,9 +7,3 @@ WARNING: This is a development server. Do not use it in a production deployment.
  * Running on http://127.0.0.1:5000
  * Running on http://21.0.8.108:5000
 Press CTRL+C to quit
-127.0.0.1 - - [08/Sep/2026 11:51:54] "POST /api/printers/detect HTTP/1.1" 401 -
-127.0.0.1 - - [08/Sep/2026 11:51:57] "POST /api/save HTTP/1.1" 401 -
-127.0.0.1 - - [08/Sep/2026 11:52:00] "GET /api/load HTTP/1.1" 401 -
-127.0.0.1 - - [08/Sep/2026 11:52:03] "GET /wall HTTP/1.1" 401 -
-127.0.0.1 - - [08/Sep/2026 11:52:06] "GET /inventory HTTP/1.1" 401 -
-127.0.0.1 - - [08/Sep/2026 11:52:09] "GET /profile HTTP/1.1" 401 -

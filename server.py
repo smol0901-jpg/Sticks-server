@@ -847,25 +847,40 @@ def index():
 def login():
     """Login page"""
     if request.method == 'POST':
-        data = request.get_json() or request.form
-        username = data.get('username', '').strip()
-        password = data.get('password', '')
+        # Handle both JSON and form data
+        try:
+            data = request.get_json(silent=True)
+        except:
+            data = None
+        if not data:
+            data = request.form
+        
+        username = data.get('username', '').strip() if data else ''
+        password = data.get('password', '') if data else ''
         
         db = get_db()
         user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         
         if not user:
-            return jsonify({'error': 'User not found'}), 404
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'User not found'}), 404
+            return render_template('login.html', error='User not found')
         
         if not user['is_active']:
-            return jsonify({'error': 'Account is disabled'}), 403
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'Account is disabled'}), 403
+            return render_template('login.html', error='Account is disabled')
         
         # Check if password is enabled
         if user['password_enabled']:
             if not password:
-                return jsonify({'error': 'Password required'}), 400
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Password required'}), 400
+                return render_template('login.html', error='Password required')
             if hash_password(password) != user['password_hash']:
-                return jsonify({'error': 'Invalid password'}), 401
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Invalid password'}), 401
+                return render_template('login.html', error='Invalid password')
         
         session['user_id'] = user['id']
         session['username'] = user['username']
@@ -1409,36 +1424,48 @@ def api_messages():
 @app.route('/api/upload', methods=['POST'])
 @check_auth()
 def api_upload():
-    """Upload files"""
-    if 'files' not in request.files:
-        return jsonify({'error': 'No files provided'}), 400
+    """Upload files - supports both multipart/form-data and JSON"""
+    # Handle multipart form data (file uploads)
+    if request.files:
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        files = request.files.getlist('files')
+        uploaded = []
+        
+        for file in files:
+            if file.filename == '':
+                continue
+            
+            filename = secure_filename(file.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+            filename = timestamp + filename
+            
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            file_type = get_file_type(filename)
+            file_size = os.path.getsize(filepath)
+            
+            uploaded.append({
+                'filename': filename,
+                'original_name': file.filename,
+                'type': file_type,
+                'size': file_size,
+                'url': f'/uploads/{filename}'
+            })
+        
+        return jsonify({'success': True, 'files': uploaded})
     
-    files = request.files.getlist('files')
-    uploaded = []
+    # Handle JSON data (for wall posts with attachments references)
+    try:
+        data = request.get_json()
+        if data:
+            return jsonify({'success': True, 'data': data})
+    except:
+        pass
     
-    for file in files:
-        if file.filename == '':
-            continue
-        
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-        filename = timestamp + filename
-        
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        
-        file_type = get_file_type(filename)
-        file_size = os.path.getsize(filepath)
-        
-        uploaded.append({
-            'filename': filename,
-            'original_name': file.filename,
-            'type': file_type,
-            'size': file_size,
-            'url': f'/uploads/{filename}'
-        })
-    
-    return jsonify({'success': True, 'files': uploaded})
+    return jsonify({'error': 'No valid data provided'}), 400
 
 @app.route('/uploads/<filename>')
 @check_auth()
